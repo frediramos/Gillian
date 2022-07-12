@@ -179,6 +179,7 @@ and lcmd =
   | SpecVar of string list
   | SL of slcmd
   | IsSymbolic of string * expr
+  | IsSat of string * formula
 
 and 'label cmd =
   | Skip

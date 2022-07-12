@@ -611,6 +611,7 @@ struct
             raise (Interpreter_error ([ ESt err ], state)))
 
     | IsSymbolic (_, _) -> raise (Failure "IsSymbolic not implemented")
+    | IsSat (_, _) -> raise (Failure "IsSat not implemented")
 
     | Macro (name, args) -> (
         let macro = Macro.get prog.prog.macros name in

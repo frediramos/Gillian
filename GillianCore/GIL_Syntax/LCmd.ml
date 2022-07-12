@@ -12,6 +12,7 @@ type t = TypeDef__.lcmd =
   | SpecVar of string list  (** Spec Var         *)
   | SL of SLCmd.t
   | IsSymbolic of string * Expr.t (* x := IsSymbolic(e) *)
+  | IsSat of string * Formula.t (* x := IsSat(f) *)
 
 let rec map
     (f_l : (t -> t) option)
@@ -39,6 +40,7 @@ let rec map
   | SpecVar _ -> mapped_lcmd
   | SL sl_cmd -> SL (map_sl sl_cmd)
   | IsSymbolic (x, e) -> IsSymbolic (x, map_e e)
+  | IsSat (x, a) -> IsSat (x, map_p a)
 
 let fold = List.fold_left SS.union SS.empty
 
@@ -55,6 +57,7 @@ let rec pvars (lcmd : t) : SS.t =
   | SpecVar _ -> SS.empty
   | SL slcmd -> SLCmd.pvars slcmd
   | IsSymbolic (x, e) -> SS.union (SS.singleton x) (Expr.pvars e)
+  | IsSat (x, a) -> SS.union (SS.singleton x) (Formula.pvars a)
 
 let rec lvars (lcmd : t) : SS.t =
   let lvars_es es = fold (List.map Expr.lvars es) in
@@ -69,6 +72,7 @@ let rec lvars (lcmd : t) : SS.t =
   | SpecVar svars -> SS.of_list svars
   | SL slcmd -> SLCmd.lvars slcmd
   | IsSymbolic (_, e) -> Expr.lvars e 
+  | IsSat (_, a) -> Formula.lvars a 
 
 let rec locs (lcmd : t) : SS.t =
   let locs_es es = fold (List.map Expr.locs es) in
@@ -82,6 +86,7 @@ let rec locs (lcmd : t) : SS.t =
   | SpecVar svars -> SS.of_list svars
   | SL slcmd -> SLCmd.locs slcmd
   | IsSymbolic (_, e) -> Expr.locs e
+  | IsSat (_, a) -> Formula.locs a 
 
 let rec pp fmt lcmd =
   let pp_list = Fmt.list ~sep:Fmt.semi pp in
@@ -103,3 +108,4 @@ let rec pp fmt lcmd =
       Fmt.pf fmt "spec_var (@[%a@])" (Fmt.list ~sep:Fmt.comma Fmt.string) xs
   | SL sl_cmd -> SLCmd.pp fmt sl_cmd
   | IsSymbolic (x, e) -> Fmt.pf fmt "%s := IsSymbolic (@[%a@])" x Expr.pp e
+  | IsSat (x, a) -> Fmt.pf fmt "%s := IsSat (@[%a@])" x Formula.pp a

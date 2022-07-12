@@ -633,6 +633,7 @@ module LCmd : sig
     | SpecVar of string list  (** Specification variables (spec vars) *)
     | SL of SLCmd.t  (** Separation-logic-related commands ({!type:SLCmd.t}) *)
     | IsSymbolic of string * Expr.t (* x := IsSymbolic(e) *)
+    | IsSat of string * Formula.t (* x := IsSat(f) *)
 
   (** Deprecated. Use {!Visitors} instead *)
   val map :
@@ -1136,6 +1137,7 @@ module Visitors : sig
            ; visit_Arguments : 'c -> 'f Cmd.t -> string -> 'f Cmd.t
            ; visit_Assert : 'c -> LCmd.t -> Formula.t -> LCmd.t
            ; visit_IsSymbolic : 'c -> LCmd.t -> string -> Expr.t -> LCmd.t
+           ; visit_IsSat : 'c -> LCmd.t -> string -> Formula.t -> LCmd.t
            ; visit_Assignment : 'c -> 'f Cmd.t -> string -> Expr.t -> 'f Cmd.t
            ; visit_Assume : 'c -> LCmd.t -> Formula.t -> LCmd.t
            ; visit_AssumeType : 'c -> LCmd.t -> string -> Type.t -> LCmd.t
@@ -1377,6 +1379,7 @@ module Visitors : sig
       method visit_Arguments : 'c -> 'f Cmd.t -> string -> 'f Cmd.t
       method visit_Assert : 'c -> LCmd.t -> Formula.t -> LCmd.t
       method visit_IsSymbolic : 'c -> LCmd.t -> string -> Expr.t -> LCmd.t
+      method visit_IsSat : 'c -> LCmd.t -> string -> Formula.t -> LCmd.t
       method visit_Assignment : 'c -> 'f Cmd.t -> string -> Expr.t -> 'f Cmd.t
       method visit_Assume : 'c -> LCmd.t -> Formula.t -> LCmd.t
       method visit_AssumeType : 'c -> LCmd.t -> string -> Type.t -> LCmd.t
@@ -1672,6 +1675,7 @@ module Visitors : sig
            ; visit_Arguments : 'c -> string -> 'f
            ; visit_Assert : 'c -> Formula.t -> 'f
            ; visit_IsSymbolic : 'c -> string -> Expr.t -> 'f
+           ; visit_IsSat : 'c -> string -> Formula.t -> 'f
            ; visit_Assignment : 'c -> string -> Expr.t -> 'f
            ; visit_Assume : 'c -> Formula.t -> 'f
            ; visit_AssumeType : 'c -> string -> Type.t -> 'f
@@ -1888,6 +1892,7 @@ module Visitors : sig
       method visit_Arguments : 'c -> string -> 'f
       method visit_Assert : 'c -> Formula.t -> 'f
       method visit_IsSymbolic : 'c -> string -> Expr.t -> 'f
+      method visit_IsSat : 'c -> string -> Formula.t -> 'f
       method visit_Assignment : 'c -> string -> Expr.t -> 'f
       method visit_Assume : 'c -> Formula.t -> 'f
       method visit_AssumeType : 'c -> string -> Type.t -> 'f
@@ -2116,6 +2121,7 @@ module Visitors : sig
            ; visit_Arguments : 'c -> string -> unit
            ; visit_Assert : 'c -> Formula.t -> unit
            ; visit_IsSymbolic : 'c -> string -> Expr.t -> unit
+           ; visit_IsSat : 'c -> string -> Formula.t -> unit
            ; visit_Assignment : 'c -> string -> Expr.t -> unit
            ; visit_Assume : 'c -> Formula.t -> unit
            ; visit_AssumeType : 'c -> string -> Type.t -> unit
@@ -2331,6 +2337,7 @@ module Visitors : sig
       method visit_Arguments : 'c -> string -> unit
       method visit_Assert : 'c -> Formula.t -> unit
       method visit_IsSymbolic : 'c -> string -> Expr.t -> unit
+      method visit_IsSat : 'c -> string -> Formula.t -> unit
       method visit_Assignment : 'c -> string -> Expr.t -> unit
       method visit_Assume : 'c -> Formula.t -> unit
       method visit_AssumeType : 'c -> string -> Type.t -> unit
