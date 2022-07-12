@@ -182,6 +182,7 @@ and lcmd =
   | IsSat of string * formula
   | NewSymVar of string * expr
   | NewSymVarName of string * string * expr
+  | NewSymVarArray of string * string * expr * expr 
 
 
 and 'label cmd =

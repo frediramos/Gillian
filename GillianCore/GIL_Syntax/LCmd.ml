@@ -14,7 +14,8 @@ type t = TypeDef__.lcmd =
   | IsSymbolic of string * Expr.t (* x := IsSymbolic(e) *)
   | IsSat of string * Formula.t (* x := IsSat(f) *)
   | NewSymVar of string * Expr.t (* x := NewSymVar(e) *)
-  | NewSymVarName of string * string * Expr.t (* x := NewSymVar(s,e) *)
+  | NewSymVarName of string * string * Expr.t (* x := NewSymVarName(s,e) *)
+  | NewSymVarArray of string * string * Expr.t * Expr.t (* x := NewSymVarArray(s,i,e) *)
 
 let rec map
     (f_l : (t -> t) option)
@@ -45,6 +46,7 @@ let rec map
   | IsSat (x, a) -> IsSat (x, map_p a)
   | NewSymVar (x, e) -> NewSymVar (x, map_e e)
   | NewSymVarName (x, s, e) -> NewSymVarName (x, s, map_e e)
+  | NewSymVarArray (x, s, i, e) -> NewSymVarArray (x, s, i, map_e e)
 
 let fold = List.fold_left SS.union SS.empty
 
@@ -64,6 +66,8 @@ let rec pvars (lcmd : t) : SS.t =
   | IsSat (x, a) -> SS.union (SS.singleton x) (Formula.pvars a)
   | NewSymVar (x, e) -> SS.union (SS.singleton x) (Expr.pvars e)
   | NewSymVarName (x, s, e) -> SS.union (SS.singleton x) (SS.union (SS.singleton s) (Expr.pvars e))
+  | NewSymVarArray (x, s, i, e) ->
+     SS.union (SS.singleton x) (SS.union (SS.singleton s) (SS.union (Expr.pvars i) (Expr.pvars e)))
 
 let rec lvars (lcmd : t) : SS.t =
   let lvars_es es = fold (List.map Expr.lvars es) in
@@ -81,6 +85,7 @@ let rec lvars (lcmd : t) : SS.t =
   | IsSat (_, a) -> Formula.lvars a 
   | NewSymVar (_, e) -> Expr.lvars e 
   | NewSymVarName (_, _, e) -> Expr.lvars e 
+  | NewSymVarArray (_, _, i, e) ->  SS.union (Expr.lvars i)  (Expr.lvars e) 
 
 
 let rec locs (lcmd : t) : SS.t =
@@ -98,6 +103,8 @@ let rec locs (lcmd : t) : SS.t =
   | IsSat (_, a) -> Formula.locs a 
   | NewSymVar (_, e) -> Expr.locs e
   | NewSymVarName (_, _, e) -> Expr.locs e
+  | NewSymVarArray (_, _, i, e) ->  SS.union (Expr.locs i)  (Expr.locs e) 
+
 
 let rec pp fmt lcmd =
   let pp_list = Fmt.list ~sep:Fmt.semi pp in
@@ -122,3 +129,4 @@ let rec pp fmt lcmd =
   | IsSat (x, a) -> Fmt.pf fmt "%s := IsSat (@[%a@])" x Formula.pp a
   | NewSymVar (x, e) -> Fmt.pf fmt "%s := NewSymVar (@[%a@])" x Expr.pp e
   | NewSymVarName (x, s, e) -> Fmt.pf fmt "%s := NewSymVarName (@[%s,%a@])" x s Expr.pp e
+  | NewSymVarArray (x, s, i, e) -> Fmt.pf fmt "%s := NewSymVarArray (@[%s,%a,%a@])" x s Expr.pp i Expr.pp e
