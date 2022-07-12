@@ -16,6 +16,7 @@ type t = TypeDef__.lcmd =
   | NewSymVar of string * Expr.t (* x := NewSymVar(e) *)
   | NewSymVarName of string * string * Expr.t (* x := NewSymVarName(s,e) *)
   | NewSymVarArray of string * string * Expr.t * Expr.t (* x := NewSymVarArray(s,i,e) *)
+  | Maximize of string * Expr.t (* x := Maximize(e) *)
 
 let rec map
     (f_l : (t -> t) option)
@@ -47,6 +48,8 @@ let rec map
   | NewSymVar (x, e) -> NewSymVar (x, map_e e)
   | NewSymVarName (x, s, e) -> NewSymVarName (x, s, map_e e)
   | NewSymVarArray (x, s, i, e) -> NewSymVarArray (x, s, i, map_e e)
+  | Maximize (x, e) -> Maximize (x, map_e e)
+  
 
 let fold = List.fold_left SS.union SS.empty
 
@@ -68,6 +71,8 @@ let rec pvars (lcmd : t) : SS.t =
   | NewSymVarName (x, s, e) -> SS.union (SS.singleton x) (SS.union (SS.singleton s) (Expr.pvars e))
   | NewSymVarArray (x, s, i, e) ->
      SS.union (SS.singleton x) (SS.union (SS.singleton s) (SS.union (Expr.pvars i) (Expr.pvars e)))
+  | Maximize (x, e) -> SS.union (SS.singleton x) (Expr.pvars e)
+
 
 let rec lvars (lcmd : t) : SS.t =
   let lvars_es es = fold (List.map Expr.lvars es) in
@@ -86,7 +91,7 @@ let rec lvars (lcmd : t) : SS.t =
   | NewSymVar (_, e) -> Expr.lvars e 
   | NewSymVarName (_, _, e) -> Expr.lvars e 
   | NewSymVarArray (_, _, i, e) ->  SS.union (Expr.lvars i)  (Expr.lvars e) 
-
+  | Maximize (_, e) -> Expr.lvars e 
 
 let rec locs (lcmd : t) : SS.t =
   let locs_es es = fold (List.map Expr.locs es) in
@@ -104,7 +109,7 @@ let rec locs (lcmd : t) : SS.t =
   | NewSymVar (_, e) -> Expr.locs e
   | NewSymVarName (_, _, e) -> Expr.locs e
   | NewSymVarArray (_, _, i, e) ->  SS.union (Expr.locs i)  (Expr.locs e) 
-
+  | Maximize (_, e) -> Expr.locs e
 
 let rec pp fmt lcmd =
   let pp_list = Fmt.list ~sep:Fmt.semi pp in
@@ -130,3 +135,4 @@ let rec pp fmt lcmd =
   | NewSymVar (x, e) -> Fmt.pf fmt "%s := NewSymVar (@[%a@])" x Expr.pp e
   | NewSymVarName (x, s, e) -> Fmt.pf fmt "%s := NewSymVarName (@[%s,%a@])" x s Expr.pp e
   | NewSymVarArray (x, s, i, e) -> Fmt.pf fmt "%s := NewSymVarArray (@[%s,%a,%a@])" x s Expr.pp i Expr.pp e
+  | Maximize (x, e) -> Fmt.pf fmt "%s := Maximize (@[%a@])" x Expr.pp e

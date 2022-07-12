@@ -615,6 +615,8 @@ struct
     | NewSymVar (_, _) -> raise (Failure "NewSymVar not implemented")
     | NewSymVarName (_, _, _) -> raise (Failure "NewSymVarName not implemented")
     | NewSymVarArray (_, _, _, _) -> raise (Failure "NewSymVarArray not implemented")
+    | Maximize (_, _) -> raise (Failure "Maximize not implemented")
+
 
     | Macro (name, args) -> (
         let macro = Macro.get prog.prog.macros name in
