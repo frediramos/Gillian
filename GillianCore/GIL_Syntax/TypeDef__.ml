@@ -180,6 +180,8 @@ and lcmd =
   | SL of slcmd
   | IsSymbolic of string * expr
   | IsSat of string * formula
+  | NewSymVar of string * expr
+
 
 and 'label cmd =
   | Skip
