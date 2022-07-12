@@ -1883,6 +1883,7 @@ module Visitors : sig
       method visit_ApplyLem : 'c -> string -> Expr.t list -> string list -> 'f
       method visit_Arguments : 'c -> string -> 'f
       method visit_Assert : 'c -> Formula.t -> 'f
+      method visit_IsSymbolic : 'c -> string -> Expr.t -> 'f
       method visit_Assignment : 'c -> string -> Expr.t -> 'f
       method visit_Assume : 'c -> Formula.t -> 'f
       method visit_AssumeType : 'c -> string -> Type.t -> 'f

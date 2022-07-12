@@ -178,6 +178,7 @@ and lcmd =
   | AssumeType of string * typ
   | SpecVar of string list
   | SL of slcmd
+  | IsSymbolic of string * expr
 
 and 'label cmd =
   | Skip

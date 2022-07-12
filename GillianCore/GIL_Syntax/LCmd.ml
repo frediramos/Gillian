@@ -10,6 +10,7 @@ type t = TypeDef__.lcmd =
   | Assume of Formula.t  (** Assume           *)
   | AssumeType of string * Type.t  (** Assume Type      *)
   | SpecVar of string list  (** Spec Var         *)
+  | IsSymbolic of string * Expr.t (* x := IsSymbolic(e) *)
   | SL of SLCmd.t
 
 let rec map
@@ -37,6 +38,7 @@ let rec map
   | AssumeType _ -> mapped_lcmd
   | SpecVar _ -> mapped_lcmd
   | SL sl_cmd -> SL (map_sl sl_cmd)
+  | IsSymbolic (x, e) -> IsSymbolic (x, map_e e)
 
 let fold = List.fold_left SS.union SS.empty
 
@@ -52,6 +54,7 @@ let rec pvars (lcmd : t) : SS.t =
       if Names.is_pvar_name x then SS.singleton x else SS.empty
   | SpecVar _ -> SS.empty
   | SL slcmd -> SLCmd.pvars slcmd
+  | IsSymbolic (x, e) -> SS.union (SS.singleton x) (Expr.pvars e)
 
 let rec lvars (lcmd : t) : SS.t =
   let lvars_es es = fold (List.map Expr.lvars es) in
@@ -65,6 +68,7 @@ let rec lvars (lcmd : t) : SS.t =
       if Names.is_lvar_name x then SS.singleton x else SS.empty
   | SpecVar svars -> SS.of_list svars
   | SL slcmd -> SLCmd.lvars slcmd
+  | IsSymbolic (x, e) -> Expr.lvars e 
 
 let rec locs (lcmd : t) : SS.t =
   let locs_es es = fold (List.map Expr.locs es) in
@@ -77,6 +81,7 @@ let rec locs (lcmd : t) : SS.t =
   | AssumeType _ -> SS.empty
   | SpecVar svars -> SS.of_list svars
   | SL slcmd -> SLCmd.locs slcmd
+  | IsSymbolic (x, e) -> Expr.locs e
 
 let rec pp fmt lcmd =
   let pp_list = Fmt.list ~sep:Fmt.semi pp in
@@ -97,3 +102,4 @@ let rec pp fmt lcmd =
   | SpecVar xs ->
       Fmt.pf fmt "spec_var (@[%a@])" (Fmt.list ~sep:Fmt.comma Fmt.string) xs
   | SL sl_cmd -> SLCmd.pp fmt sl_cmd
+  | IsSymbolic (x, e) -> Fmt.pf fmt "%s := IsSymbolic (@[%a@])" x (Expr.pp e) 
