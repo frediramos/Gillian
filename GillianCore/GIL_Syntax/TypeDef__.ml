@@ -181,6 +181,7 @@ and lcmd =
   | IsSymbolic of string * expr
   | IsSat of string * formula
   | NewSymVar of string * expr
+  | NewSymVarName of string * string * expr
 
 
 and 'label cmd =

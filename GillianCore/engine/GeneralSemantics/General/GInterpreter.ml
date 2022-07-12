@@ -613,6 +613,7 @@ struct
     | IsSymbolic (_, _) -> raise (Failure "IsSymbolic not implemented")
     | IsSat (_, _) -> raise (Failure "IsSat not implemented")
     | NewSymVar (_, _) -> raise (Failure "NewSymVar not implemented")
+    | NewSymVarName (_, _, _) -> raise (Failure "NewSymVarName not implemented")
 
     | Macro (name, args) -> (
         let macro = Macro.get prog.prog.macros name in
