@@ -609,6 +609,9 @@ struct
               Printf.printf "%s" msg;
             L.normal (fun m -> m "%s" msg);
             raise (Interpreter_error ([ ESt err ], state)))
+
+    | IsSymbolic (_, _) -> raise (Failure "IsSymbolic not implemented")
+
     | Macro (name, args) -> (
         let macro = Macro.get prog.prog.macros name in
         match macro with
