@@ -638,6 +638,7 @@ module LCmd : sig
     | NewSymVarName of string * string * Expr.t (* x := NewSymVarName(s, e) *)
     | NewSymVarArray of string * string * Expr.t * Expr.t (* x := NewSymVarName(s, i, e) *)
     | Maximize of string * Expr.t (* x := Maximize(e) *)
+    | Minimize of string * Expr.t (* x := Minimize(e) *)
 
   (** Deprecated. Use {!Visitors} instead *)
   val map :
@@ -1146,6 +1147,7 @@ module Visitors : sig
            ; visit_NewSymVarName : 'c -> LCmd.t -> string -> string -> Expr.t -> LCmd.t
            ; visit_NewSymVarArray : 'c -> LCmd.t -> string -> string -> Expr.t -> Expr.t -> LCmd.t
            ; visit_Maximize : 'c -> LCmd.t -> string -> Expr.t -> LCmd.t
+           ; visit_Minimize : 'c -> LCmd.t -> string -> Expr.t -> LCmd.t
            ; visit_Assignment : 'c -> 'f Cmd.t -> string -> Expr.t -> 'f Cmd.t
            ; visit_Assume : 'c -> LCmd.t -> Formula.t -> LCmd.t
            ; visit_AssumeType : 'c -> LCmd.t -> string -> Type.t -> LCmd.t
@@ -1392,6 +1394,7 @@ module Visitors : sig
       method visit_NewSymVarName : 'c -> LCmd.t -> string -> string -> Expr.t -> LCmd.t
       method visit_NewSymVarArray : 'c -> LCmd.t -> string -> string -> Expr.t -> Expr.t -> LCmd.t
       method visit_Maximize : 'c -> LCmd.t -> string -> Expr.t -> LCmd.t      
+      method visit_Minimize : 'c -> LCmd.t -> string -> Expr.t -> LCmd.t      
       method visit_Assignment : 'c -> 'f Cmd.t -> string -> Expr.t -> 'f Cmd.t
       method visit_Assume : 'c -> LCmd.t -> Formula.t -> LCmd.t
       method visit_AssumeType : 'c -> LCmd.t -> string -> Type.t -> LCmd.t
@@ -1691,7 +1694,8 @@ module Visitors : sig
            ; visit_NewSymVar : 'c -> string -> Expr.t -> 'f
            ; visit_NewSymVarName : 'c -> string -> string -> Expr.t -> 'f
            ; visit_NewSymVarArray : 'c -> string -> string -> Expr.t -> Expr.t -> 'f
-           ; visit_Maximize : 'c -> string -> Expr.t -> 'f           
+           ; visit_Maximize : 'c -> string -> Expr.t -> 'f
+           ; visit_Minimize : 'c -> string -> Expr.t -> 'f
            ; visit_Assignment : 'c -> string -> Expr.t -> 'f
            ; visit_Assume : 'c -> Formula.t -> 'f
            ; visit_AssumeType : 'c -> string -> Type.t -> 'f
@@ -1913,6 +1917,7 @@ module Visitors : sig
       method visit_NewSymVarName : 'c -> string -> string -> Expr.t -> 'f
       method visit_NewSymVarArray : 'c -> string -> string -> Expr.t -> Expr.t -> 'f
       method visit_Maximize : 'c -> string -> Expr.t -> 'f
+      method visit_Minimize : 'c -> string -> Expr.t -> 'f
       method visit_Assignment : 'c -> string -> Expr.t -> 'f
       method visit_Assume : 'c -> Formula.t -> 'f
       method visit_AssumeType : 'c -> string -> Type.t -> 'f
@@ -2146,6 +2151,7 @@ module Visitors : sig
            ; visit_NewSymVarName : 'c -> string -> string -> Expr.t -> unit
            ; visit_NewSymVarArray : 'c -> string -> string -> Expr.t -> Expr.t -> unit
            ; visit_Maximize : 'c -> string -> Expr.t -> unit
+           ; visit_Minimize : 'c -> string -> Expr.t -> unit
            ; visit_Assignment : 'c -> string -> Expr.t -> unit
            ; visit_Assume : 'c -> Formula.t -> unit
            ; visit_AssumeType : 'c -> string -> Type.t -> unit
@@ -2366,6 +2372,7 @@ module Visitors : sig
       method visit_NewSymVarName : 'c -> string -> string -> Expr.t -> unit
       method visit_NewSymVarArray : 'c -> string -> string -> Expr.t -> Expr.t -> unit
       method visit_Maximize : 'c -> string -> Expr.t -> unit
+      method visit_Minimize : 'c -> string -> Expr.t -> unit
       method visit_Assignment : 'c -> string -> Expr.t -> unit
       method visit_Assume : 'c -> Formula.t -> unit
       method visit_AssumeType : 'c -> string -> Type.t -> unit

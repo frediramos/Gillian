@@ -616,6 +616,7 @@ struct
     | NewSymVarName (_, _, _) -> raise (Failure "NewSymVarName not implemented")
     | NewSymVarArray (_, _, _, _) -> raise (Failure "NewSymVarArray not implemented")
     | Maximize (_, _) -> raise (Failure "Maximize not implemented")
+    | Minimize (_, _) -> raise (Failure "Minimize not implemented")
 
 
     | Macro (name, args) -> (

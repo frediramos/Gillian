@@ -184,6 +184,7 @@ and lcmd =
   | NewSymVarName of string * string * expr
   | NewSymVarArray of string * string * expr * expr 
   | Maximize of string * expr
+  | Minimize of string * expr
 
 and 'label cmd =
   | Skip

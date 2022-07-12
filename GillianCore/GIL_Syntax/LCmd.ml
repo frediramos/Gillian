@@ -17,6 +17,7 @@ type t = TypeDef__.lcmd =
   | NewSymVarName of string * string * Expr.t (* x := NewSymVarName(s,e) *)
   | NewSymVarArray of string * string * Expr.t * Expr.t (* x := NewSymVarArray(s,i,e) *)
   | Maximize of string * Expr.t (* x := Maximize(e) *)
+  | Minimize of string * Expr.t (* x := Minimize(e) *)
 
 let rec map
     (f_l : (t -> t) option)
@@ -49,6 +50,7 @@ let rec map
   | NewSymVarName (x, s, e) -> NewSymVarName (x, s, map_e e)
   | NewSymVarArray (x, s, i, e) -> NewSymVarArray (x, s, i, map_e e)
   | Maximize (x, e) -> Maximize (x, map_e e)
+  | Minimize (x, e) -> Minimize (x, map_e e)
   
 
 let fold = List.fold_left SS.union SS.empty
@@ -72,6 +74,7 @@ let rec pvars (lcmd : t) : SS.t =
   | NewSymVarArray (x, s, i, e) ->
      SS.union (SS.singleton x) (SS.union (SS.singleton s) (SS.union (Expr.pvars i) (Expr.pvars e)))
   | Maximize (x, e) -> SS.union (SS.singleton x) (Expr.pvars e)
+  | Minimize (x, e) -> SS.union (SS.singleton x) (Expr.pvars e)
 
 
 let rec lvars (lcmd : t) : SS.t =
@@ -92,6 +95,7 @@ let rec lvars (lcmd : t) : SS.t =
   | NewSymVarName (_, _, e) -> Expr.lvars e 
   | NewSymVarArray (_, _, i, e) ->  SS.union (Expr.lvars i)  (Expr.lvars e) 
   | Maximize (_, e) -> Expr.lvars e 
+  | Minimize (_, e) -> Expr.lvars e 
 
 let rec locs (lcmd : t) : SS.t =
   let locs_es es = fold (List.map Expr.locs es) in
@@ -110,6 +114,7 @@ let rec locs (lcmd : t) : SS.t =
   | NewSymVarName (_, _, e) -> Expr.locs e
   | NewSymVarArray (_, _, i, e) ->  SS.union (Expr.locs i)  (Expr.locs e) 
   | Maximize (_, e) -> Expr.locs e
+  | Minimize (_, e) -> Expr.locs e
 
 let rec pp fmt lcmd =
   let pp_list = Fmt.list ~sep:Fmt.semi pp in
@@ -136,3 +141,4 @@ let rec pp fmt lcmd =
   | NewSymVarName (x, s, e) -> Fmt.pf fmt "%s := NewSymVarName (@[%s,%a@])" x s Expr.pp e
   | NewSymVarArray (x, s, i, e) -> Fmt.pf fmt "%s := NewSymVarArray (@[%s,%a,%a@])" x s Expr.pp i Expr.pp e
   | Maximize (x, e) -> Fmt.pf fmt "%s := Maximize (@[%a@])" x Expr.pp e
+  | Minimize (x, e) -> Fmt.pf fmt "%s := Minimize (@[%a@])" x Expr.pp e
