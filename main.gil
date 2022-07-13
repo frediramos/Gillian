@@ -1,0 +1,17 @@
+(*
+proc main () {
+    y := 0i;
+    is_symbolic(x, y);
+    ret := x;
+    return
+};
+*)
+
+proc main () {
+    spec_var (#y);
+    assume_type (#y, Num);
+    y := #y;
+    is_symbolic(x, y);
+    ret := x;
+    return
+};

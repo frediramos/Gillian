@@ -18,8 +18,10 @@ type t = TypeDef__.lcmd =
   | NewSymVarArray of string * string * Expr.t * Expr.t (* x := NewSymVarArray(s,i,e) *)
   | Maximize of string * Expr.t (* x := Maximize(e) *)
   | Minimize of string * Expr.t (* x := Minimize(e) *)
+  (*| Constraints of string (* c := Constraints() *)*)
 
-let rec map
+
+  let rec map
     (f_l : (t -> t) option)
     (f_e : (Expr.t -> Expr.t) option)
     (f_p : (Formula.t -> Formula.t) option)

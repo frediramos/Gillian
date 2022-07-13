@@ -610,7 +610,15 @@ struct
             L.normal (fun m -> m "%s" msg);
             raise (Interpreter_error ([ ESt err ], state)))
 
-    | IsSymbolic (_, _) -> raise (Failure "IsSymbolic not implemented")
+    | IsSymbolic (x, e) ->
+       let ve = eval_expr e in
+       let b = not (Val.is_concrete ve) in
+       let vb = Val.from_literal (Bool b) in 
+       let state' = update_store state x vb in
+       [state']
+        
+
+
     | IsSat (_, _) -> raise (Failure "IsSat not implemented")
     | NewSymVar (_, _) -> raise (Failure "NewSymVar not implemented")
     | NewSymVarName (_, _, _) -> raise (Failure "NewSymVarName not implemented")

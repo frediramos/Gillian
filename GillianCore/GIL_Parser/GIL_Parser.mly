@@ -122,6 +122,7 @@ let normalised_lvar_r = Str.regexp "##NORMALISED_LVAR"
 %token TYPEOF
 %token ASSUME
 %token ASSERT
+%token ISSYMBOLIC
 %token SEPASSERT
 %token INVARIANT
 %token ASSUME_TYPE
@@ -757,6 +758,10 @@ g_logic_cmd_target:
 (* assert (a) *)
   | ASSERT; LBRACE; a = pure_assertion_target; RBRACE
     { LCmd.Assert a }
+
+(* is_symbolic(x, e) *)
+  | ISSYMBOLIC; LBRACE; v=VAR; COMMA; le=expr_target; RBRACE
+    { LCmd.IsSymbolic (v, le) }
 
 (* assume (a) *)
   | ASSUME; LBRACE; a = pure_assertion_target; RBRACE
