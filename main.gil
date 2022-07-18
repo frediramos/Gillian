@@ -7,6 +7,8 @@ proc main () {
 };
 *)
 
+
+(*
 proc main () {
     spec_var (#y);
     assume_type (#y, Num);
@@ -15,3 +17,16 @@ proc main () {
     ret := x;
     return
 };
+*)
+
+
+proc main () {
+    spec_var (#y);
+    assume_type (#y, Num);
+    y := #y;
+    is_sat(x, (true));
+    ret := x;
+    return
+};
+
+

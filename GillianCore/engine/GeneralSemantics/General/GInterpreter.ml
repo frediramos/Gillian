@@ -616,10 +616,19 @@ struct
        let vb = Val.from_literal (Bool b) in 
        let state' = update_store state x vb in
        [state']
-        
 
+    | IsSat (x, e) -> 
+      let ve = State.sat_check_f state [e] in
+      let sat =
+        match ve with
+        | None -> false
+        | _ -> true
+      in
+      let vb = Val.from_literal (Bool sat) in 
+      let state' = update_store state x vb in
+      [state']
 
-    | IsSat (_, _) -> raise (Failure "IsSat not implemented")
+    
     | NewSymVar (_, _) -> raise (Failure "NewSymVar not implemented")
     | NewSymVarName (_, _, _) -> raise (Failure "NewSymVarName not implemented")
     | NewSymVarArray (_, _, _, _) -> raise (Failure "NewSymVarArray not implemented")

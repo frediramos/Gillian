@@ -109,6 +109,7 @@
       "invariant",    GIL_Parser.INVARIANT;
       "assert",       GIL_Parser.ASSERT;
       "is_symbolic",  GIL_Parser.ISSYMBOLIC;
+      "is_sat",       GIL_Parser.ISSAT;
       "assume",       GIL_Parser.ASSUME;
       "assume_type",  GIL_Parser.ASSUME_TYPE;
       "spec_var",     GIL_Parser.SPEC_VAR;
