@@ -6,6 +6,11 @@
 
 type objmodel_mode = [ `Lifting | `Logging | `LogLifting ]
 
+let objmodel_to_string = function
+  | `Lifting -> "Lifting"
+  | `Logging -> "Logging"
+  | `LogLifting -> "LogLifting"
+
 let objmodel : objmodel_mode ref = ref `Lifting
 let under_approximation = ref false
 

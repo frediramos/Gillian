@@ -9,34 +9,19 @@ module SVal = Gillian.Symbolic.Values
 module PFS = Gillian.Symbolic.Pure_context
 module Type_env = Gillian.Symbolic.Type_env
 module Recovery_tactic = Gillian.General.Recovery_tactic
+module Mem = MemoryTypes
 open Gillian.Logic
 
 module M = struct
-  type init_data = unit
-  type vt = SVal.t [@@deriving yojson, show]
-
-  (** Type of JSIL general states *)
-  type t = SHeap.t [@@deriving yojson]
+  type init_data = Mem.init_data
+  type vt = Mem.vt [@@deriving yojson, show]
+  type st = Mem.st
+  type t = Mem.t [@@deriving yojson]
+  type i_fix_t = Mem.i_fix_t [@@deriving yojson, show]
+  type err_t = Mem.err_t [@@deriving yojson, show]
+  type action_ret = Mem.action_ret
 
   let sure_is_nonempty _ = (* TODO: Implement *) false
-
-  (** Type of JSIL substitutions *)
-  type st = SSubst.t
-
-  (** Errors *)
-  type i_fix_t =
-    | FLoc of vt
-    | FCell of vt * vt
-    | FMetadata of vt
-    | FPure of Expr.t
-  [@@deriving yojson, show]
-
-  type err_t = vt list * i_fix_t list list * Expr.t [@@deriving yojson, show]
-
-  type action_ret =
-    ( (t * vt list * Expr.t list * (string * Type.t) list) list,
-      err_t list )
-    result
 
   let pp_i_fix ft (i_fix : i_fix_t) : unit =
     let open Fmt in
@@ -196,7 +181,7 @@ module M = struct
 
       let fixes_exist_props : i_fix_t list list =
         List.map
-          (fun prop' -> [ FPure (Expr.BinOp (prop, Equal, prop')) ])
+          (fun prop' -> [ Mem.FPure (Expr.BinOp (prop, Equal, prop')) ])
           props
       in
       let fix_new_property : i_fix_t list = [ FCell (loc, prop); FPure ff ] in
@@ -312,13 +297,17 @@ module M = struct
                           make_gc_error loc_name prop (SFVL.field_names fv_list)
                             (Some dom);
                         ]))
-        ~none:(Error [ ([], [ [ FLoc loc; FCell (loc, prop) ] ], Expr.false_) ])
+        ~none:
+          (Error
+             [ ([], [ [ Mem.FLoc loc; Mem.FCell (loc, prop) ] ], Expr.false_) ])
         (SHeap.get heap loc_name)
     in
 
     let result =
       Option.fold ~some:get_cell_from_loc
-        ~none:(Error [ ([], [ [ FLoc loc; FCell (loc, prop) ] ], Expr.false_) ])
+        ~none:
+          (Error
+             [ ([], [ [ Mem.FLoc loc; Mem.FCell (loc, prop) ] ], Expr.false_) ])
         loc_name
     in
     result
@@ -379,7 +368,9 @@ module M = struct
     in
 
     Option.fold ~some:f
-      ~none:(Error [ ([ loc ], [ [ FLoc loc; FMetadata loc ] ], Expr.false_) ])
+      ~none:
+        (Error
+           [ ([ loc ], [ [ Mem.FLoc loc; Mem.FMetadata loc ] ], Expr.false_) ])
       loc_name
 
   let set_metadata
@@ -744,4 +735,16 @@ module M = struct
   let sorted_locs_with_vals (smemory : t) =
     let sorted_locs = Containers.SS.elements (SHeap.domain smemory) in
     List.map (fun loc -> (loc, Option.get (SHeap.get smemory loc))) sorted_locs
+
+  let execute_action
+      ?matching:_
+      (action : string)
+      (heap : t)
+      (pfs : PFS.t)
+      (gamma : Type_env.t)
+      (args : vt list) : action_ret =
+    match !Config.objmodel with
+    | `Lifting -> execute_action action heap pfs gamma args
+    | `Logging -> LoggingModel.execute_action action heap pfs gamma args
+    | `LogLifting -> LogLiftModel.execute_action action heap pfs gamma args
 end

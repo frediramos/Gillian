@@ -206,7 +206,11 @@ module Make
       in
       (e_prog, init_data, None)
 
+  let log_objmodel obj =
+    Printf.printf "Using: \"%s\" object model\n" (Config.objmodel_to_string obj)
+
   let process_files files already_compiled outfile_opt incremental =
+    log_objmodel !Config.objmodel;
     let t = Sys.time () in
     let* e_prog, init_data, source_files_opt =
       parse_eprog files already_compiled
