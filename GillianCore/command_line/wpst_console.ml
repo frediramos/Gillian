@@ -19,6 +19,20 @@ module Make
 
   let start_time = ref (Sys.time ())
 
+  let objmodel =
+    let docv = "MODEL" in
+    let doc =
+      "The chosen symbolic object model. \n\
+      \ Options: \"logging\", \"lifting\", and \"loglifting\""
+    in
+    let models =
+      [
+        ("logging", `Logging); ("lifting", `Lifting); ("loglifting", `LogLifting);
+      ]
+    in
+    let opts = Arg.enum models in
+    Arg.(value & opt opts `Lifting & info [ "objmodel"; "obj" ] ~docv ~doc)
+
   let json_ui =
     let doc = "Output some of the UI in JSON." in
     Arg.(value & flag & info [ "json-ui" ] ~doc)
@@ -230,6 +244,7 @@ module Make
       json_ui
       unroll
       leak_check
+      objmodel
       () =
     let () = Fmt_tty.setup_std_outputs () in
     let () = Config.json_ui := json_ui in
@@ -241,6 +256,7 @@ module Make
     let () = Config.leak_check := leak_check in
     let () = PC.initialize Symbolic in
     let () = Config.max_branching := unroll in
+    let () = Config.objmodel := objmodel in
     let r =
       Gillian_result.try_ @@ fun () ->
       process_files files already_compiled outfile_opt incremental
@@ -254,7 +270,8 @@ module Make
   let wpst_t =
     Term.(
       const wpst $ files $ already_compiled $ output_gil $ no_heap $ stats
-      $ incremental $ entry_point $ json_ui $ unroll_depth $ check_leaks)
+      $ incremental $ entry_point $ json_ui $ unroll_depth $ check_leaks
+      $ objmodel)
 
   let wpst_info =
     let doc = "Symbolically executes a file of the target language" in

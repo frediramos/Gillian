@@ -4,6 +4,9 @@
 
 (** {2 Global config} *)
 
+type objmodel_mode = [ `Lifting | `Logging | `LogLifting ]
+
+let objmodel : objmodel_mode ref = ref `Lifting
 let under_approximation = ref false
 
 let results_dir, set_result_dir =
