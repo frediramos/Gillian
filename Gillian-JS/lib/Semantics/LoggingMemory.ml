@@ -328,7 +328,6 @@ module M = struct
       ]
       fmt heap
 
-  (* TODO *)
   let pp_by_need locs ft heap =
     let locs = SS.elements locs in
     let sorted_locs_with_vals =
@@ -343,8 +342,16 @@ module M = struct
     in
     (list ~sep:(any "@\n") pp_one) ft sorted_locs_with_vals
 
-  (* TODO *)
-  let get_print_info = SHeap.get_print_info
+  let get_print_info locs heap =
+    let metadata_locs =
+      SS.fold
+        (fun loc locs ->
+          match get_met heap loc with
+          | Some (Lit (Loc x)) | Some (ALoc x) -> SS.add x locs
+          | _ -> locs)
+        locs SS.empty
+    in
+    (SS.empty, metadata_locs)
 
   let copy (heap : t) : t =
     {
