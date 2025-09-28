@@ -329,7 +329,19 @@ module M = struct
       fmt heap
 
   (* TODO *)
-  let pp_by_need locs fmt heap = SHeap.pp_by_need locs fmt heap
+  let pp_by_need locs ft heap =
+    let locs = SS.elements locs in
+    let sorted_locs_with_vals =
+      List.map (fun loc -> (loc, Option.get (get_all heap loc))) locs
+    in
+    let open Fmt in
+    let pp_one ft (loc, ((o, domain), metadata)) =
+      pf ft "@[%s |-> [ @[%a@] | @[%a@] ] with metadata %a@]" loc pp_ot o
+        (option Expr.pp) domain
+        (option ~none:(any "unknown") Expr.pp)
+        metadata
+    in
+    (list ~sep:(any "@\n") pp_one) ft sorted_locs_with_vals
 
   (* TODO *)
   let get_print_info = SHeap.get_print_info
