@@ -162,8 +162,20 @@ module M = struct
         | None -> assert false)
       set1 []
 
-  let to_obj (pairs : (vt * vt) list) : ot =
+  let list_to_obj (pairs : (vt * vt) list) : ot =
     List.fold_left (fun acc (p, v) -> Rec (p, v) :: acc) [] pairs
+
+  let list_to_sfvl lst =
+    let map = SFVL.empty in
+    List.fold_left (fun acc (k, v) -> SFVL.add k v acc) map lst
+
+  let obj_to_sfvl o =
+    let pairs = to_list o in
+    list_to_sfvl pairs
+
+  let sfvl_to_obj sfvl =
+    let lst = SFVL.to_list sfvl in
+    list_to_obj lst
 
   let get_fields o : vt list =
     let set1, _, _ = to_list_aux o (Hashtbl.create 0) in
@@ -286,9 +298,107 @@ module M = struct
     Hashtbl.reset heap.smet;
     (Expr.Set.empty, keep)
 
-  (* TODO *)
-  let substitution_in_place ~pfs:_ ~gamma:_ (_ : st) (heap : t) =
-    (* SHeap.substitution_in_place subst heap; *)
+  let merge_loc (heap : t) (new_loc : string) (old_loc : string) : unit =
+    let fvl, dom, met =
+      match Hashtbl.mem heap.fvl new_loc with
+      | true ->
+          (* Merge field-value lists *)
+          let ofl =
+            Option.value ~default:[] (Hashtbl.find_opt heap.fvl old_loc)
+          in
+          let nfl =
+            Option.value ~default:[] (Hashtbl.find_opt heap.fvl new_loc)
+          in
+          let fvl = SFVL.union (obj_to_sfvl nfl) (obj_to_sfvl ofl) in
+
+          (* Merge metadata *)
+          let odom = get_dom heap old_loc in
+          let ndom = get_dom heap new_loc in
+          let dom =
+            match (odom, ndom) with
+            | None, None -> None
+            | None, Some dom | Some dom, None -> Some dom
+            | Some dom1, Some dom2 -> Some (NOp (SetUnion, [ dom1; dom2 ]))
+          in
+
+          let omet = get_met heap old_loc in
+          let nmet = get_met heap new_loc in
+          let met =
+            match (omet, nmet) with
+            | None, None -> None
+            | None, Some met | Some met, None -> Some met
+            | Some met1, Some _ -> Some met1
+          in
+          (sfvl_to_obj fvl, dom, met)
+      | false ->
+          ( Option.value ~default:[] (Hashtbl.find_opt heap.fvl old_loc),
+            get_dom heap old_loc,
+            get_met heap old_loc )
+    in
+    set_fvl heap new_loc (Some fvl);
+    set_dom heap new_loc dom;
+    set_met heap new_loc met;
+    remove heap old_loc
+
+  let substitution_in_place (subst : SSubst.t) (heap : t) : unit =
+    (* If the substitution is empty, there is nothing to be done *)
+    if not (SSubst.domain subst None = Expr.Set.empty) then (
+      (* The substitution is not empty *)
+      let le_subst = SSubst.subst_in_expr subst ~partial:true in
+
+      (* Field-value lists *)
+      Hashtbl.iter
+        (fun loc obj ->
+          let fvl = obj_to_sfvl obj in
+          let fvl_sub = SFVL.substitution subst true fvl in
+          Hashtbl.replace heap.fvl loc (sfvl_to_obj fvl_sub))
+        heap.fvl;
+
+      (* Domain table *)
+      Hashtbl.iter
+        (fun loc dom ->
+          (* Substitute *)
+          let dom = Option.map le_subst dom in
+          (* Set domain *)
+          set_dom heap loc dom)
+        heap.sdom;
+
+      (* Metadata table *)
+      Hashtbl.iter
+        (fun loc met ->
+          (* Substitute *)
+          let met = Option.map le_subst met in
+          (* Set domain *)
+          set_met heap loc met)
+        heap.smet;
+
+      (* Now we need to deal with any substitutions in the locations themselves *)
+      let aloc_subst =
+        SSubst.filter subst (fun var _ ->
+            match var with
+            | ALoc _ -> true
+            | _ -> false)
+      in
+      SSubst.iter aloc_subst (fun aloc new_loc ->
+          let aloc =
+            match aloc with
+            | ALoc loc -> loc
+            | _ -> raise (Failure "Impossible by construction")
+          in
+          let new_loc =
+            match (new_loc : Expr.t) with
+            | Lit (Loc loc) -> loc
+            | ALoc loc -> loc
+            | _ ->
+                raise
+                  (Failure
+                     (Printf.sprintf "Heap substitution fail for loc: %s"
+                        ((Fmt.to_to_string Expr.pp) new_loc)))
+          in
+          merge_loc heap new_loc aloc))
+
+  let substitution_in_place ~pfs:_ ~gamma:_ (subst : st) (heap : t) =
+    substitution_in_place subst heap;
     [ (heap, Expr.Set.empty, []) ]
 
   let pp_ot fmt (o : ot) : unit =
@@ -606,7 +716,7 @@ module M = struct
                   (fun fv_list prop -> (prop, Expr.Lit Nono) :: fv_list)
                   pos_fv_list props
               in
-              set_fvl heap loc_name (Some (to_obj new_fv_list));
+              set_fvl heap loc_name (Some (list_to_obj new_fv_list));
               set_dom heap loc_name (Some e_dom);
               set_met heap loc_name mtdt;
               Ok [ (heap, [ loc; e_dom ], [], []) ]
@@ -795,11 +905,6 @@ module M = struct
 
   let can_fix _ = true
 
-  let obj_to_svl o =
-    let pairs = to_list o in
-    let map = SFVL.empty in
-    List.fold_left (fun acc (k, v) -> SFVL.add k v acc) map pairs
-
   let sorted_locs_with_vals (heap : t) =
     let sorted_locs =
       Hashtbl.to_seq_keys heap.fvl |> List.of_seq |> List.sort compare
@@ -807,13 +912,13 @@ module M = struct
     List.map
       (fun loc ->
         let (obj, dom), met = Option.get (get_all heap loc) in
-        let obj' = obj_to_svl obj in
+        let obj' = obj_to_sfvl obj in
         (loc, ((obj', dom), met)))
       sorted_locs
 
   let get_sfvl_t (heap : t) (loc : string) =
     Option.map
-      (fun sfvl -> ((obj_to_svl sfvl, get_dom heap loc), get_met heap loc))
+      (fun sfvl -> ((obj_to_sfvl sfvl, get_dom heap loc), get_met heap loc))
       (get_fvl heap loc)
 
   let get (heap : t) (loc : string) = get_sfvl_t heap loc
