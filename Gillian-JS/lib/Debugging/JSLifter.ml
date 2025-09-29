@@ -202,7 +202,7 @@ struct
     | None ->
         let loc_id = get_new_scope_id () in
         let vars =
-          match SHeap.get smemory loc with
+          match Legacy_symbolic.get smemory loc with
           | None -> []
           | Some ((properties, domain), metadata_opt) ->
               let metadata_node metadata_opt : Variable.t =

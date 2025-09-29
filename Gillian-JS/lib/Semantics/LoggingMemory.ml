@@ -169,7 +169,8 @@ module M = struct
     let set1, _, _ = to_list_aux o (Hashtbl.create 0) in
     Expr.Set.to_list set1
 
-  let set (heap : t) (loc : string) (field : Expr.t) (value : Expr.t) : unit =
+  let logging_set (heap : t) (loc : string) (field : Expr.t) (value : Expr.t) :
+      unit =
     let obj =
       match Hashtbl.find_opt heap.fvl loc with
       | None -> []
@@ -200,8 +201,8 @@ module M = struct
           (lst1 @ lst2, pi1 && pi2)
         else (lst1, pi1)
 
-  let get (obj : ot) (prop : vt) (pc : vt) (gamma : Type_env.t) : (vt * vt) list
-      =
+  let logging_get (obj : ot) (prop : vt) (pc : vt) (gamma : Type_env.t) :
+      (vt * vt) list =
     let lst, not_found_pc = get_vals obj prop pc gamma in
     if Expr.equal not_found_pc Expr.true_ then (undef, not_found_pc) :: lst
     else lst
@@ -441,7 +442,7 @@ module M = struct
       (prop : vt)
       (v : vt) : action_ret =
     let loc_name, _, new_pfs = fresh_loc ~loc pfs gamma in
-    set heap loc_name prop v;
+    logging_set heap loc_name prop v;
     Ok [ (heap, [], new_pfs, []) ]
 
   let get_cell
@@ -458,7 +459,7 @@ module M = struct
       | None -> Error [ ([], [], Expr.false_) ]
       | Some o ->
           let pc = Expr.conjunct (PFS.to_list pfs) in
-          let values = get o prop pc gamma in
+          let values = logging_get o prop pc gamma in
           let expr = mk_ite_v values in
           Ok [ (heap, [ loc; prop; expr ], [], []) ]
     in
@@ -478,7 +479,7 @@ module M = struct
       (prop : vt) : action_ret =
     let f (loc_name : string) : unit =
       Option.fold
-        ~some:(fun _ -> set heap loc_name prop none)
+        ~some:(fun _ -> logging_set heap loc_name prop none)
         ~none:()
         (Hashtbl.find_opt heap.fvl loc_name)
     in
@@ -794,9 +795,26 @@ module M = struct
 
   let can_fix _ = true
 
+  let obj_to_svl o =
+    let pairs = to_list o in
+    let map = SFVL.empty in
+    List.fold_left (fun acc (k, v) -> SFVL.add k v acc) map pairs
+
   let sorted_locs_with_vals (heap : t) =
     let sorted_locs =
       Hashtbl.to_seq_keys heap.fvl |> List.of_seq |> List.sort compare
     in
-    List.map (fun loc -> (loc, Option.get (get_all heap loc))) sorted_locs
+    List.map
+      (fun loc ->
+        let (obj, dom), met = Option.get (get_all heap loc) in
+        let obj' = obj_to_svl obj in
+        (loc, ((obj', dom), met)))
+      sorted_locs
+
+  let get_sfvl_t (heap : t) (loc : string) =
+    Option.map
+      (fun sfvl -> ((obj_to_svl sfvl, get_dom heap loc), get_met heap loc))
+      (get_fvl heap loc)
+
+  let get (heap : t) (loc : string) = get_sfvl_t heap loc
 end

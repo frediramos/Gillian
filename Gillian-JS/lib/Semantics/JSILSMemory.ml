@@ -744,4 +744,6 @@ module M = struct
   let sorted_locs_with_vals (smemory : t) =
     let sorted_locs = Containers.SS.elements (SHeap.domain smemory) in
     List.map (fun loc -> (loc, Option.get (SHeap.get smemory loc))) sorted_locs
+
+  let get (heap : t) (loc : string) = SHeap.get heap loc
 end
