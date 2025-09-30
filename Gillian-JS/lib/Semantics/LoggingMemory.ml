@@ -108,6 +108,16 @@ module M = struct
       (fun sfvl -> ((sfvl, get_dom heap loc), get_met heap loc))
       (get_fvl heap loc)
 
+  let set_all
+      (heap : t)
+      (loc : string)
+      (fv_list : ot option)
+      (dom : Expr.t option)
+      (metadata : Expr.t option) : unit =
+    set_fvl heap loc fv_list;
+    set_dom heap loc dom;
+    set_met heap loc metadata
+
   (* Logging *)
   let undef = Expr.lit Undefined
   let none = Expr.lit Nono
@@ -604,12 +614,10 @@ module M = struct
       (dom : vt) : action_ret =
     let loc_name, _, new_pfs = fresh_loc ~loc pfs gamma in
 
-    (match Hashtbl.find_opt heap.fvl loc_name with
-    | None ->
-        set_fvl heap loc_name None;
-        set_met heap loc_name None;
-        set_dom heap loc_name (Some dom)
-    | Some _ -> set_dom heap loc_name (Some dom));
+    (match get_all heap loc_name with
+    | None -> set_all heap loc_name None (Some dom) None
+    | Some ((fv_list, _), mtdt) ->
+        set_all heap loc_name (Some fv_list) (Some dom) mtdt);
     Ok [ (heap, [], new_pfs, []) ]
 
   let get_metadata (heap : t) (pfs : PFS.t) (gamma : Type_env.t) (loc : vt) :
@@ -644,18 +652,14 @@ module M = struct
       (mtdt : vt) : action_ret =
     let loc_name, _, new_pfs = fresh_loc ~loc pfs gamma in
 
-    (match Hashtbl.find_opt heap.fvl loc_name with
-    | None ->
-        set_fvl heap loc_name None;
-        set_met heap loc_name (Some mtdt);
-        set_dom heap loc_name None
-    | Some _ -> (
-        match get_met heap loc_name with
-        | None -> set_met heap loc_name (Some mtdt)
-        | Some omet ->
-            if omet <> Option.get (SVal.from_expr (Lit Null)) then
-              PFS.extend pfs (BinOp (mtdt, Equal, omet))
-            else set_met heap loc_name (Some mtdt)));
+    (match get_all heap loc_name with
+    | None -> set_all heap loc_name None None (Some mtdt)
+    | Some ((fv_list, dom), None) ->
+        set_all heap loc_name (Some fv_list) dom (Some mtdt)
+    | Some ((fv_list, dom), Some omet) ->
+        if omet <> Option.get (SVal.from_expr (Lit Null)) then
+          PFS.extend pfs (BinOp (mtdt, Equal, omet))
+        else set_all heap loc_name (Some fv_list) dom (Some mtdt));
     Ok [ (heap, [], new_pfs, []) ]
 
   let delete_object (heap : t) (pfs : PFS.t) (gamma : Type_env.t) (loc : vt) :
@@ -716,9 +720,9 @@ module M = struct
                   (fun fv_list prop -> (prop, Expr.Lit Nono) :: fv_list)
                   pos_fv_list props
               in
-              set_fvl heap loc_name (Some (list_to_obj new_fv_list));
-              set_dom heap loc_name (Some e_dom);
-              set_met heap loc_name mtdt;
+              set_all heap loc_name
+                (Some (list_to_obj new_fv_list))
+                (Some e_dom) mtdt;
               Ok [ (heap, [ loc; e_dom ], [], []) ]
           | _ -> raise (Failure "DEATH. get_partial_domain. dom_diff"))
     in
@@ -767,11 +771,10 @@ module M = struct
       action_ret =
     let f (loc_name : string) : unit =
       Option.fold
-        ~some:(fun _ ->
-          set_dom heap loc_name None;
+        ~some:(fun ((fv_list, _), mtdt) ->
+          set_all heap loc_name (Some fv_list) None mtdt;
           ())
-        ~none:()
-        (Hashtbl.find_opt heap.fvl loc_name)
+        ~none:() (get_all heap loc_name)
     in
     Option.fold ~some:f ~none:() (get_loc_name pfs gamma loc);
     Ok [ (heap, [], [], []) ]
