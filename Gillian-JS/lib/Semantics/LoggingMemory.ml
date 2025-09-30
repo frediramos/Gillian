@@ -191,15 +191,8 @@ module M = struct
     let set1, _, _ = to_list_aux o (Hashtbl.create 0) in
     Expr.Set.to_list set1
 
-  let logging_set (heap : t) (loc : string) (field : Expr.t) (value : Expr.t) :
-      unit =
-    let obj =
-      match Hashtbl.find_opt heap.fvl loc with
-      | None -> []
-      | Some obj -> obj
-    in
-    let obj' = Rec (field, value) :: obj in
-    set_fvl heap loc (Some obj')
+  let logging_set (obj : ot) (field : Expr.t) (value : Expr.t) : ot =
+    Rec (field, value) :: obj
 
   let rec get_vals' (obj : ot') (prop : vt) (pc : vt) (gamma : Type_env.t) :
       (vt * vt) list * vt =
@@ -562,7 +555,12 @@ module M = struct
       (prop : vt)
       (v : vt) : action_ret =
     let loc_name, _, new_pfs = fresh_loc ~loc pfs gamma in
-    logging_set heap loc_name prop v;
+    let obj =
+      match Hashtbl.find_opt heap.fvl loc_name with
+      | None -> logging_set [] prop v
+      | Some o -> logging_set o prop v
+    in
+    Hashtbl.replace heap.fvl loc_name obj;
     Ok [ (heap, [], new_pfs, []) ]
 
   let get_cell
@@ -599,9 +597,11 @@ module M = struct
       (prop : vt) : action_ret =
     let f (loc_name : string) : unit =
       Option.fold
-        ~some:(fun _ -> logging_set heap loc_name prop none)
-        ~none:()
-        (Hashtbl.find_opt heap.fvl loc_name)
+        ~some:(fun ((obj, dom), mtdt) ->
+          let obj' = logging_set obj prop none in
+          set_all heap loc_name (Some obj') dom mtdt;
+          ())
+        ~none:() (get_all heap loc_name)
     in
     Option.fold ~some:f ~none:() (get_loc_name pfs gamma loc);
     Ok [ (heap, [], [], []) ]
