@@ -119,12 +119,33 @@ module M = struct
     set_met heap loc metadata
 
   (* Logging *)
-  let undef = Expr.lit Undefined
   let none = Expr.lit Nono
+  let undef = none
+  let deleted = none
   let set_empty = Expr.Set.empty
   let set_summ a b = Expr.Set.union a b
   let set_diff a b = Expr.Set.diff a b
   let set_single a = Expr.Set.singleton a
+
+  let branch_types (lst : (vt * vt) list) =
+    let open Expr.Infix in
+    match lst with
+    | [] -> []
+    | [ (v, cond) ] -> [ ([ (v, cond) ], cond) ]
+    | _ ->
+        let tbl = Hashtbl.create 16 in
+        List.iter
+          (fun (v, pc) ->
+            let ty = Expr.typeof v in
+            match Hashtbl.find_opt tbl ty with
+            | None -> Hashtbl.replace tbl ty ([ (v, pc) ], pc)
+            | Some (lst, expr) ->
+                Hashtbl.replace tbl ty ((v, pc) :: lst, expr || pc))
+          lst;
+        (* Reverse each list to preserve original order *)
+        Hashtbl.to_seq_values tbl
+        |> Seq.map (fun (vs, pc) -> (List.rev vs, pc))
+        |> List.of_seq
 
   let ite (e : vt) (c1 : vt) (c2 : vt) : vt =
     let open Expr.Infix in
@@ -133,15 +154,32 @@ module M = struct
   let must_be cond pc gamma =
     not (FOSolver.check_satisfiability [ Expr.Infix.not cond; pc ] gamma)
 
+  let is_sat exprs gamma = FOSolver.check_satisfiability exprs gamma
+  let check_deleted v = if Expr.equal v deleted then undef else v
+
+  let mk_ite (lst : (vt * vt) list) (pc : vt) (gamma : Type_env.t) : vt =
+    let open Expr.Infix in
+    let rec mk_ite' lst global_pc eq_expr gamma =
+      match lst with
+      | [] -> undef
+      | [ (v, cond) ] ->
+          let eq_expr = eq_expr || cond in
+          let v' = check_deleted v in
+          if must_be eq_expr global_pc gamma then v' else ite cond v' undef
+      | (v, cond) :: rest ->
+          let v' = check_deleted v in
+          let eq_expr = eq_expr || cond in
+          ite cond v' (mk_ite' rest global_pc eq_expr gamma)
+    in
+    let expr = mk_ite' lst pc Expr.false_ gamma in
+    Reduction.reduce_lexpr expr
+
   let rec mk_ite_v (lst : (vt * vt) list) : vt =
-    let check_none v = if Expr.equal v none then undef else v in
     match lst with
-    | [] -> undef
-    | [ (v, cond) ] ->
-        let v' = check_none v in
-        ite cond v' undef
+    | [] -> failwith "mk_ite_v' should never be called on an empy list"
+    | [ (v, _) ] -> check_deleted v
     | (v, cond) :: rest ->
-        let v' = check_none v in
+        let v' = check_deleted v in
         ite cond v' (mk_ite_v rest)
 
   let to_list_aux' (o : ot') (tbl : (vt, vt) Hashtbl.t) :
@@ -218,9 +256,26 @@ module M = struct
 
   let logging_get (obj : ot) (prop : vt) (pc : vt) (gamma : Type_env.t) :
       (vt * vt) list =
-    let lst, not_found_pc = get_vals obj prop pc gamma in
-    if Expr.equal not_found_pc Expr.true_ then (undef, not_found_pc) :: lst
-    else lst
+    let lst, not_found_pc_ = get_vals obj prop pc gamma in
+    let lst' = branch_types lst in
+    let lst'' =
+      List.fold_left
+        (fun acc (l, pc') ->
+          let ite = mk_ite_v l in
+          (ite, pc') :: acc)
+        [] lst'
+    in
+    let ret =
+      match not_found_pc_ with
+      | Lit (Bool false) -> lst''
+      | Lit (Bool true) -> (undef, not_found_pc_) :: lst''
+      | _ ->
+          if is_sat [ not_found_pc_; pc ] gamma then
+            (undef, not_found_pc_) :: lst''
+          else lst''
+    in
+    if ret = [] then failwith "ERROR: logging_get() should not return empty"
+    else ret
 
   (* Default *)
   let pp_i_fix ft (_ : i_fix_t) : unit = Fmt.pf ft "@[<h>i_fix_t=unit@]"
@@ -572,14 +627,44 @@ module M = struct
     let loc_name = get_loc_name pfs gamma loc in
 
     let get_cell_from_loc loc_name =
-      let obj = Hashtbl.find_opt heap.fvl loc_name in
-      match obj with
-      | None -> Error [ ([], [], Expr.false_) ]
-      | Some o ->
-          let pc = Expr.conjunct (PFS.to_list pfs) in
-          let values = logging_get o prop pc gamma in
-          let expr = mk_ite_v values in
-          Ok [ (heap, [ loc; prop; expr ], [], []) ]
+      Option.fold
+        ~some:(fun ((obj, dom), mtdt) ->
+          let pfs_lst = PFS.to_list pfs in
+          let pc = Expr.conjunct pfs_lst in
+          let rets = logging_get obj prop pc gamma in
+          match rets with
+          | [ (v, _) ] when not (Expr.equal v undef || Expr.equal v none) ->
+              Ok [ (heap, [ loc; prop; v ], [], []) ]
+          | _ -> (
+              match dom with
+              | None -> Error [ ([], [], Expr.false_) ]
+              | Some dom ->
+                  let a_set_inclusion : Expr.t =
+                    UnOp (Not, BinOp (prop, SetMem, dom))
+                  in
+                  if
+                    FOSolver.check_entailment Containers.SS.empty pfs
+                      [ a_set_inclusion ] gamma
+                  then (
+                    let new_domain : Expr.t =
+                      NOp (SetUnion, [ dom; ESet [ prop ] ])
+                    in
+                    let new_domain =
+                      Reduction.reduce_lexpr ?gamma:(Some gamma) ?pfs:(Some pfs)
+                        new_domain
+                    in
+                    let obj' = logging_set obj prop (Lit Nono) in
+                    set_all heap loc_name (Some obj') (Some new_domain) mtdt;
+                    Ok [ (heap, [ loc; prop; Lit Nono ], [], []) ])
+                  else
+                    Ok
+                      (List.map
+                         (fun (expr, cond) ->
+                           let heap' = copy heap in
+                           (heap', [ loc; prop; expr ], [ cond ], []))
+                         rets)))
+        ~none:(Error [ ([], [], Expr.false_) ])
+        (get_all heap loc_name)
     in
 
     let result =
