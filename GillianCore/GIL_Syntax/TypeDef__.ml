@@ -52,6 +52,8 @@ and literal =
   | LList of literal list
   | Nono
 
+and triop = Ite
+
 and binop =
   | Equal
   | ILessThan
@@ -146,6 +148,7 @@ and expr =
   | ALoc of string
   | UnOp of unop * expr
   | BinOp of expr * binop * expr
+  | TriOp of triop * expr * expr * expr
   | LstSub of expr * expr * expr
   | NOp of nop * expr list
   | EList of expr list

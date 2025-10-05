@@ -8,6 +8,7 @@ type t = TypeDef__.expr =
   | ALoc of string  (** GIL abstract locations *)
   | UnOp of UnOp.t * t  (** Unary operators         *)
   | BinOp of t * BinOp.t * t  (** Binary operators        *)
+  | TriOp of TriOp.t * t * t * t  (** Ternary operators        *)
   | LstSub of t * t * t  (** Sublist or (list, start, len) *)
   | NOp of NOp.t * t list  (** n-ary operators         *)
   | EList of t list  (** Lists of expressions    *)
@@ -359,6 +360,10 @@ let rec map_opt
         match mapped_expr with
         | Lit _ | LVar _ | ALoc _ | PVar _ -> Some mapped_expr
         | UnOp (op, e) -> Option.map (fun e -> UnOp (op, e)) (map_e e)
+        | TriOp (op, c, e1, e2) -> (
+            match (map_e c, map_e e1, map_e e2) with
+            | Some c', Some e1', Some e2' -> Some (TriOp (op, c', e1', e2'))
+            | _ -> None)
         | BinOp (e1, op, e2) -> (
             match (map_e e1, map_e e2) with
             | Some e1', Some e2' -> Some (BinOp (e1', op, e2'))
@@ -397,6 +402,9 @@ let pp_custom ~pp ft =
           Fmt.pf ft "%s(%a, %a)" (BinOp.str op) pp e1 pp e2
       | Equal -> Fmt.pf ft "@[(%a %s %a)@]" pp e1 (BinOp.str op) pp e2
       | _ -> Fmt.pf ft "(%a %s %a)" pp e1 (BinOp.str op) pp e2)
+  | TriOp (op, c, e1, e2) -> (
+      match op with
+      | _ -> Fmt.pf ft "%s(%a, %a, %a)" (TriOp.str op) pp c pp e1 pp e2)
   | LstSub (e1, e2, e3) -> Fmt.pf ft "l-sub(%a, %a, %a)" pp e1 pp e2 pp e3
   (* (uop e) *)
   | UnOp (op, e) -> Fmt.pf ft "(%s %a)" (UnOp.str op) pp e
@@ -426,6 +434,8 @@ let rec full_pp fmt e =
   | ALoc _ -> Fmt.pf fmt "ALoc %a" pp e
   | BinOp (e1, op, e2) ->
       Fmt.pf fmt "(%a %s %a)" full_pp e1 (BinOp.str op) full_pp e2
+  | TriOp (op, c, e1, e2) ->
+      Fmt.pf fmt "(%s %a %a %a)" (TriOp.str op) full_pp c full_pp e1 full_pp e2
   | UnOp (op, e) -> Fmt.pf fmt "(%s %a)" (UnOp.str op) pp e
   | LstSub (e1, e2, e3) ->
       Fmt.pf fmt "l-sub(%a, %a, %a)" full_pp e1 full_pp e2 full_pp e3
@@ -477,6 +487,7 @@ let rec is_concrete (le : t) : bool =
   | LVar _ | ALoc _ | Exists _ | ForAll _ -> false
   | UnOp (_, e) -> f e
   | BinOp (e1, _, e2) -> loop [ e1; e2 ]
+  | TriOp (_, c, e1, e2) -> loop [ c; e1; e2 ]
   | LstSub (e1, e2, e3) -> loop [ e1; e2; e3 ]
   | NOp (_, les) | EList les | ESet les -> loop les
 
@@ -523,6 +534,7 @@ let push_in_negations, negate =
     | BinOp (a1, And, a2) -> BinOp (f_off a1, And, f_off a2)
     | BinOp (a1, Or, a2) -> BinOp (f_off a1, Or, f_off a2)
     | BinOp (a1, Impl, a2) -> BinOp (f_off a1, Impl, f_off a2)
+    | TriOp (Ite, c, a1, a2) -> TriOp (Ite, f_off c, f_off a1, f_off a2)
     | UnOp (Not, a1) -> f_on a1
     | ForAll (bt, a) -> ForAll (bt, f_off a)
     | Exists (bt, a) -> Exists (bt, f_off a)
@@ -535,6 +547,7 @@ let push_in_negations, negate =
     | BinOp (e1, FLessThan, e2) -> BinOp (e2, FLessThanEqual, e1)
     | BinOp (e1, ILessThanEqual, e2) -> BinOp (e2, ILessThan, e1)
     | BinOp (e1, FLessThanEqual, e2) -> BinOp (e2, FLessThan, e1)
+    | TriOp (Ite, c, a1, a2) -> TriOp (Ite, f_off c, f_on a1, f_on a2)
     | Lit (Bool b) -> Lit (Bool (not b))
     | UnOp (Not, a) -> f_off a
     | Exists (bt, a) -> ForAll (bt, f_on a)
@@ -558,6 +571,7 @@ let rec is_boolean_expr : t -> bool = function
   | UnOp (Not, e') | Exists (_, e') | ForAll (_, e') -> is_boolean_expr e'
   | BinOp (e1, And, e2) | BinOp (e1, Or, e2) | BinOp (e1, Impl, e2) ->
       is_boolean_expr e1 && is_boolean_expr e2
+  | TriOp (Ite, _, e1, e2) -> is_boolean_expr e1 && is_boolean_expr e2
   | _ -> false
 
 let subst_expr_for_expr ~to_subst ~subst_with expr =
@@ -607,6 +621,7 @@ let rec pvars_to_lvars (e : t) : t =
   | PVar x -> LVar ("#__" ^ x)
   | UnOp (op, e) -> UnOp (op, f e)
   | BinOp (e1, op, e2) -> BinOp (f e1, op, f e2)
+  | TriOp (op, c, e1, e2) -> TriOp (op, f c, f e1, f e2)
   | LstSub (e1, e2, e3) -> LstSub (f e1, f e2, f e3)
   | NOp (op, les) -> NOp (op, List.map f les)
   | EList les -> EList (List.map f les)

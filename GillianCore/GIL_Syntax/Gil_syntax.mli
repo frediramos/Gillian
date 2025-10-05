@@ -1138,6 +1138,8 @@ module Visitors : sig
          ; visit_Assume : 'c -> LCmd.t -> Expr.t -> LCmd.t
          ; visit_AssumeType : 'c -> LCmd.t -> Expr.t -> Type.t -> LCmd.t
          ; visit_BinOp : 'c -> Expr.t -> Expr.t -> BinOp.t -> Expr.t -> Expr.t
+         ; visit_TriOp :
+             'c -> Expr.t -> TriOp.t -> Expr.t -> Expr.t -> Expr.t -> Expr.t
          ; visit_BitwiseAnd : 'c -> BinOp.t -> BinOp.t
          ; visit_BitwiseAndL : 'c -> BinOp.t -> BinOp.t
          ; visit_BitwiseAndF : 'c -> BinOp.t -> BinOp.t
@@ -1353,6 +1355,7 @@ module Visitors : sig
              string * (string * Expr.t) list ->
              string * (string * Expr.t) list
          ; visit_binop : 'c -> BinOp.t -> BinOp.t
+         ; visit_triop : 'c -> TriOp.t -> TriOp.t
          ; visit_bispec : 'c -> BiSpec.t -> BiSpec.t
          ; visit_cmd : 'c -> 'f Cmd.t -> 'f Cmd.t
          ; visit_position : 'c -> Location.position -> Location.position
@@ -1393,6 +1396,10 @@ module Visitors : sig
     method visit_Assume : 'c -> LCmd.t -> Expr.t -> LCmd.t
     method visit_AssumeType : 'c -> LCmd.t -> Expr.t -> Type.t -> LCmd.t
     method visit_BinOp : 'c -> Expr.t -> Expr.t -> BinOp.t -> Expr.t -> Expr.t
+
+    method visit_TriOp :
+      'c -> Expr.t -> TriOp.t -> Expr.t -> Expr.t -> Expr.t -> Expr.t
+
     method visit_BitwiseAnd : 'c -> BinOp.t -> BinOp.t
     method visit_BitwiseAndL : 'c -> BinOp.t -> BinOp.t
     method visit_BitwiseAndF : 'c -> BinOp.t -> BinOp.t
@@ -1617,6 +1624,7 @@ module Visitors : sig
       'c -> string * (string * Expr.t) list -> string * (string * Expr.t) list
 
     method visit_binop : 'c -> BinOp.t -> BinOp.t
+    method visit_triop : 'c -> TriOp.t -> TriOp.t
     method visit_bispec : 'c -> BiSpec.t -> BiSpec.t
     method private visit_bool : 'env. 'env -> bool -> bool
     method private visit_bytes : 'env. 'env -> bytes -> bytes
@@ -1688,6 +1696,7 @@ module Visitors : sig
          ; visit_Assume : 'c -> Expr.t -> 'f
          ; visit_AssumeType : 'c -> Expr.t -> Type.t -> 'f
          ; visit_BinOp : 'c -> Expr.t -> BinOp.t -> Expr.t -> 'f
+         ; visit_TriOp : 'c -> TriOp.t -> Expr.t -> Expr.t -> Expr.t -> 'f
          ; visit_BitwiseAnd : 'c -> 'f
          ; visit_BitwiseAndL : 'c -> 'f
          ; visit_BitwiseAndF : 'c -> 'f
@@ -1871,6 +1880,7 @@ module Visitors : sig
          ; visit_assertion : 'c -> Asrt.t -> 'f
          ; visit_bindings : 'c -> string * (string * Expr.t) list -> 'f
          ; visit_binop : 'c -> BinOp.t -> 'f
+         ; visit_triop : 'c -> TriOp.t -> 'f
          ; visit_bispec : 'c -> BiSpec.t -> 'f
          ; visit_cmd : 'c -> 'g Cmd.t -> 'f
          ; visit_position : 'c -> Location.position -> 'f
@@ -1907,6 +1917,7 @@ module Visitors : sig
     method visit_Assume : 'c -> Expr.t -> 'f
     method visit_AssumeType : 'c -> Expr.t -> Type.t -> 'f
     method visit_BinOp : 'c -> Expr.t -> BinOp.t -> Expr.t -> 'f
+    method visit_TriOp : 'c -> TriOp.t -> Expr.t -> Expr.t -> Expr.t -> 'f
     method visit_BitwiseAnd : 'c -> 'f
     method visit_BitwiseAndL : 'c -> 'f
     method visit_BitwiseAndF : 'c -> 'f
@@ -2094,6 +2105,7 @@ module Visitors : sig
     method visit_assertion : 'c -> Asrt.t -> 'f
     method visit_bindings : 'c -> string * (string * Expr.t) list -> 'f
     method visit_binop : 'c -> BinOp.t -> 'f
+    method visit_trinop : 'c -> TriOp.t -> 'f
     method visit_bispec : 'c -> BiSpec.t -> 'f
     method visit_cmd : 'c -> 'g Cmd.t -> 'f
     method visit_position : 'c -> Location.position -> 'f
@@ -2132,6 +2144,7 @@ module Visitors : sig
          ; visit_Assume : 'c -> Expr.t -> unit
          ; visit_AssumeType : 'c -> Expr.t -> Type.t -> unit
          ; visit_BinOp : 'c -> Expr.t -> BinOp.t -> Expr.t -> unit
+         ; visit_TriOp : 'c -> TriOp.t -> Expr.t -> Expr.t -> Expr.t -> unit
          ; visit_BitwiseAnd : 'c -> unit
          ; visit_BitwiseAndL : 'c -> unit
          ; visit_BitwiseAndF : 'c -> unit
@@ -2315,6 +2328,7 @@ module Visitors : sig
          ; visit_assertion : 'c -> Asrt.t -> unit
          ; visit_bindings : 'c -> string * (string * Expr.t) list -> unit
          ; visit_binop : 'c -> BinOp.t -> unit
+         ; visit_triop : 'c -> TriOp.t -> unit
          ; visit_bispec : 'c -> BiSpec.t -> unit
          ; visit_cmd : 'c -> 'f Cmd.t -> unit
          ; visit_position : 'c -> Location.position -> unit
@@ -2350,6 +2364,7 @@ module Visitors : sig
     method visit_Assume : 'c -> Expr.t -> unit
     method visit_AssumeType : 'c -> Expr.t -> Type.t -> unit
     method visit_BinOp : 'c -> Expr.t -> BinOp.t -> Expr.t -> unit
+    method visit_TriOp : 'c -> TriOp.t -> Expr.t -> Expr.t -> Expr.t -> unit
     method visit_BitwiseAnd : 'c -> unit
     method visit_BitwiseAndL : 'c -> unit
     method visit_BitwiseAndF : 'c -> unit
@@ -2548,6 +2563,7 @@ module Visitors : sig
     method visit_assertion : 'c -> Asrt.t -> unit
     method visit_bindings : 'c -> string * (string * Expr.t) list -> unit
     method visit_binop : 'c -> BinOp.t -> unit
+    method visit_triop : 'c -> TriOp.t -> unit
     method visit_bispec : 'c -> BiSpec.t -> unit
     method private visit_bool : 'env. 'env -> bool -> unit
     method private visit_bytes : 'env. 'env -> bytes -> unit
