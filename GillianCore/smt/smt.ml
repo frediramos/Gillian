@@ -586,6 +586,18 @@ let encode_equality (p1 : Encoding.t) (p2 : Encoding.t) : Encoding.t =
   in
   res >- BooleanType
 
+let encode_triop
+    (op : TriOp.t)
+    (c : Encoding.t)
+    (p1 : Encoding.t)
+    (p2 : Encoding.t) : Encoding.t =
+  let open Encoding in
+  let>- _ = c in
+  let>- _ = p1 in
+  let>- _ = p2 in
+  match op with
+  | Ite -> ite (simple_wrap c) (simple_wrap p2) (simple_wrap p1) >- NoneType
+
 let encode_binop (op : BinOp.t) (p1 : Encoding.t) (p2 : Encoding.t) : Encoding.t
     =
   let open Encoding in
@@ -652,7 +664,7 @@ let encode_binop (op : BinOp.t) (p1 : Encoding.t) (p2 : Encoding.t) : Encoding.t
   | M_atan2
   | M_pow
   | StrCat ->
-      Fmt.failwith "SMT encoding: Costruct not supported yet - binop: %s"
+      Fmt.failwith "SMT encoding: Construct not supported yet - binop: %s"
         (BinOp.str op)
 
 let encode_unop ~llen_lvars ~e (op : UnOp.t) le =
@@ -791,6 +803,7 @@ let rec encode_logical_expression
   | PVar _ -> failwith "HORROR: Program variable in pure formula"
   | UnOp (op, le) -> encode_unop ~llen_lvars ~e:le op (f le)
   | BinOp (le1, op, le2) -> encode_binop op (f le1) (f le2)
+  | TriOp (op, c, e1, e2) -> encode_triop op (f c) (f e1) (f e2)
   | NOp (SetUnion, les) ->
       let>-- les = List.map f les in
       les |> List.map get_set |> set_union' Z3 >- SetType

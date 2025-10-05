@@ -218,6 +218,16 @@ module BinOp : sig
   val str : t -> string
 end
 
+(** @canonical Gillian.Gil_syntax.TriOp *)
+module TriOp : sig
+  (** GIL Binary Operators *)
+
+  type t = Ite  (** If-then-else *) [@@deriving yojson, eq]
+
+  (** Printer *)
+  val str : t -> string
+end
+
 (** @canonical Gillian.Gil_syntax.NOp *)
 module NOp : sig
   (** GIL N-ary Operators *)
@@ -243,6 +253,7 @@ module Expr : sig
     | ALoc of string  (** GIL abstract locations (uninterpreted symbols) *)
     | UnOp of UnOp.t * t  (** Unary operators ({!type:UnOp.t}) *)
     | BinOp of t * BinOp.t * t  (** Binary operators ({!type:BinOp.t}) *)
+    | TriOp of TriOp.t * t * t * t  (** Ternary operators ({!type:BinOp.t}) *)
     | LstSub of t * t * t  (** Sublist *)
     | NOp of NOp.t * t list  (** n-ary operators ({!type:NOp.t}) *)
     | EList of t list  (** Lists of expressions *)

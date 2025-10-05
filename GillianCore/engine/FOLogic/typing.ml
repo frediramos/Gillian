@@ -153,6 +153,7 @@ module Infer_types_to_gamma = struct
         tt = ListType && f le1 ListType && f le2 IntType && f le3 IntType
     | UnOp (op, le) -> infer_unop flag gamma new_gamma op le tt
     | BinOp (le1, op, le2) -> infer_binop flag gamma new_gamma op le1 le2 tt
+    | TriOp (op, lc, le1, le2) -> infer_triop flag gamma new_gamma op lc le1 le2 tt
     | Exists (bt, le) | ForAll (bt, le) ->
         if not (tt = BooleanType) then false
         else
@@ -355,6 +356,9 @@ module Type_lexpr = struct
       in
       infer_type gamma le tt
 
+and type_triop gamma le (op: TriOp.t) c e1 e2 =
+  let _ in 
+
   and type_binop gamma le (op : BinOp.t) e1 e2 =
     let f = f gamma in
     let infer_type = infer_type gamma in
@@ -467,6 +471,7 @@ module Type_lexpr = struct
       | Exists (bt, e) | ForAll (bt, e) -> type_quantified_expr gamma le bt e
       | UnOp (op, e) -> type_unop gamma le op e
       | BinOp (e1, op, e2) -> type_binop gamma le op e1 e2
+      | TriOp (op, c, e1, e2) -> type_triop gamma le op c e1 e2
       | NOp (SetUnion, les) | NOp (SetInter, les) ->
           let all_typable = typable_list ?target_type:(Some SetType) les in
           if all_typable then (Some SetType, true) else def_neg

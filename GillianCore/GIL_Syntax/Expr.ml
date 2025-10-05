@@ -35,6 +35,7 @@ let false_ = Lit (Bool false)
 let true_ = Lit (Bool true)
 let zero_i = int_z Z.zero
 let one_i = int_z Z.one
+let ite c e1 e2 = TriOp (Ite, c, e1, e2)
 
 let num_to_int = function
   | Lit (Num n) -> int (int_of_float n)

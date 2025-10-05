@@ -242,6 +242,7 @@ module Make (SMemory : SMemory.S) :
             | Some v -> v
             | None -> raise (Internal_State_Error ([ EVar x ], state)))
         | BinOp (e1, op, e2) -> BinOp (f e1, op, f e2)
+        | TriOp (op, c, e1, e2) -> TriOp (op, f c, f e1, f e2)
         (* Unary operators *)
         | UnOp (op, e) -> UnOp (op, f e)
         (* Lists, sets, n-ary operators *)

@@ -167,6 +167,7 @@ let rec missing_expr (kb : KB.t) (e : Expr.t) : KB.t list =
     (* The remaining cases proceed recursively *)
     | UnOp (_, e) -> f e
     | BinOp (e1, _, e2) -> join [ e1; e2 ]
+    | TriOp (_, c, e1, e2) -> join [ c; e1; e2 ]
     | NOp (_, le) | EList le | ESet le -> join le
     | LstSub (e1, e2, e3) ->
         let result = join [ e1; e2; e3 ] in
@@ -312,6 +313,7 @@ let rec learn_expr
       | false, true -> f (BinOp (base_expr, IDiv, e2)) e1)
   (* TODO: Finish the remaining invertible binary operators *)
   | BinOp _ -> []
+  | TriOp _ -> []
   (* Can we learn anything from Exists? *)
   | Exists _ | ForAll _ -> []
 
@@ -446,6 +448,19 @@ let rec simple_ins_formula (kb : KB.t) (pf : Expr.t) : KB.t list =
       let ins_e1 = simple_ins_expr e1 in
       let ins_e2 = simple_ins_expr e2 in
       let ins = List_utils.list_product [ ins_e1; ins_e2 ] in
+      let ins =
+        List.map
+          (fun ins ->
+            List.fold_left (fun kb_ac kb -> KB.union kb_ac kb) KB.empty ins)
+          ins
+      in
+      let ins = List_utils.remove_duplicates ins in
+      List.map minimise_matchables ins
+  | TriOp (_, c, e1, e2) ->
+      let ins_c = simple_ins_expr c in
+      let ins_e1 = simple_ins_expr e1 in
+      let ins_e2 = simple_ins_expr e2 in
+      let ins = List_utils.list_product [ ins_c; ins_e1; ins_e2 ] in
       let ins =
         List.map
           (fun ins ->
