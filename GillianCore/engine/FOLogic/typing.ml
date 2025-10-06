@@ -54,6 +54,27 @@ module Infer_types_to_gamma = struct
     | StrLen -> tt = NumberType && f le StringType
     | SetToList -> tt = ListType && f le SetType
 
+  and infer_triop
+      (flag : bool)
+      (gamma : Type_env.t)
+      (new_gamma : Type_env.t)
+      (op : TriOp.t)
+      (c : Expr.t)
+      (le1 : Expr.t)
+      (le2 : Expr.t)
+      (tt : Type.t) =
+    let f = f flag gamma new_gamma in
+    match op with
+    | Ite -> (
+        let ct = f c BooleanType in
+        if not ct then false
+        else
+          let e1t = f le1 tt in
+          let e2t = f le2 tt in
+          match (e1t, e2t) with
+          | true, true -> true
+          | _ -> false)
+
   and infer_binop
       (flag : bool)
       (gamma : Type_env.t)
@@ -153,7 +174,8 @@ module Infer_types_to_gamma = struct
         tt = ListType && f le1 ListType && f le2 IntType && f le3 IntType
     | UnOp (op, le) -> infer_unop flag gamma new_gamma op le tt
     | BinOp (le1, op, le2) -> infer_binop flag gamma new_gamma op le1 le2 tt
-    | TriOp (op, lc, le1, le2) -> infer_triop flag gamma new_gamma op lc le1 le2 tt
+    | TriOp (op, lc, le1, le2) ->
+        infer_triop flag gamma new_gamma op lc le1 le2 tt
     | Exists (bt, le) | ForAll (bt, le) ->
         if not (tt = BooleanType) then false
         else
@@ -356,8 +378,20 @@ module Type_lexpr = struct
       in
       infer_type gamma le tt
 
-and type_triop gamma le (op: TriOp.t) c e1 e2 =
-  let _ in 
+  and type_triop gamma _ (op : TriOp.t) _ e1 e2 =
+    let f = f gamma in
+    let t1, ite1 = f e1 in
+    let t2, ite2 = f e2 in
+    match op with
+    (* Both expressions must be the same type*)
+    | Ite -> (
+        match (ite1, ite2) with
+        | true, true -> (
+            match (t1, t2) with
+            | Some t1', Some t2' ->
+                if not (Type.equal t1' t2') then def_neg else (Some t1', true)
+            | _ -> def_neg)
+        | _ -> def_neg)
 
   and type_binop gamma le (op : BinOp.t) e1 e2 =
     let f = f gamma in

@@ -88,6 +88,7 @@ let rec normalise_list_expressions (le : Expr.t) : Expr.t =
         | _, Lit (Num _) -> raise (exn "LstNth with float")
         | le, n -> BinOp (le, LstNth, n))
     | BinOp (le1, op, le2) -> BinOp (f le1, op, f le2)
+    | TriOp (op, c, e1, e2) -> TriOp (op, f c, f e1, f e2)
     (* Unary Operators **)
     | UnOp (Car, lst) -> (
         match f lst with
@@ -178,6 +179,10 @@ let resolve_list (le : Expr.t) (pfs : Expr.t list) : Expr.t =
         | (EList _ | NOp (LstCat, _)) when not (SS.mem x (Expr.lvars le')) ->
             Some le'
         | _ -> search x rest)
+    | TriOp (_, c, _, _) :: rest -> (
+        match search x [ c ] with
+        | Some ret -> Some ret
+        | None -> search x rest)
     | _ :: rest -> search x rest
   in
 
@@ -1516,6 +1521,13 @@ and reduce_lexpr_loop
             let rest = rest |> Expr.Set.of_list |> Expr.Set.elements in
             let fles = Expr.ESet lesets :: rest in
             NOp (SetInter, fles))
+    (* TriOp *)
+    | TriOp (Ite, _, e1, e2) when Expr.equal e1 e2 -> e1
+    | TriOp (Ite, c, e1, e2) -> (
+        match c with
+        | Lit (Bool true) -> e1
+        | Lit (Bool false) -> e2
+        | _ -> TriOp (Ite, c, e1, e2))
     (* -------------------------
                 BinOp
              (terrifying)

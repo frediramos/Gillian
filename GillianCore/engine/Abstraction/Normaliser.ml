@@ -149,6 +149,17 @@ module Make (SPState : PState.S) = struct
                   in
                   Lit lit
               | _, _ -> BinOp (nle1, bop, nle2)))
+      | TriOp (op, c, e1, e2) -> (
+          match op with
+          | Ite -> (
+              let lc = f c in
+              let l1 = f e1 in
+              let l2 = f e2 in
+              match lc with
+              | Lit (Bool true) -> l1
+              | Lit (Bool false) -> l2
+              | _ when Expr.equal l1 l2 -> l1
+              | _ -> TriOp (Ite, lc, l1, l2)))
       | UnOp (uop, le1) -> (
           let nle1 = f le1 in
           match nle1 with
@@ -173,7 +184,8 @@ module Make (SPState : PState.S) = struct
                         (Exceptions.Impossible
                            "normalise_lexpr: program variable in normalised \
                             expression")
-                  | BinOp (_, _, _) | UnOp (_, _) -> UnOp (TypeOf, nle1)
+                  | BinOp (_, _, _) | TriOp (_, _, _, _) | UnOp (_, _) ->
+                      UnOp (TypeOf, nle1)
                   | Exists _ | ForAll _ -> Lit (Type BooleanType)
                   | EList _ | LstSub _ | NOp (LstCat, _) -> Lit (Type ListType)
                   | NOp (_, _) | ESet _ -> Lit (Type SetType))

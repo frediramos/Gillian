@@ -220,7 +220,7 @@ end
 
 (** @canonical Gillian.Gil_syntax.TriOp *)
 module TriOp : sig
-  (** GIL Binary Operators *)
+  (** GIL Ternay Operators *)
 
   type t = Ite  (** If-then-else *) [@@deriving yojson, eq]
 
@@ -299,6 +299,7 @@ module Expr : sig
   val imod : t -> t -> t
   val type_eq : t -> Type.t -> t
   val is_concrete_zero_i : t -> bool
+  val ite : t -> t -> t -> t
 
   module Infix : sig
     (** Floating point math *)
@@ -1151,6 +1152,7 @@ module Visitors : sig
          ; visit_BinOp : 'c -> Expr.t -> Expr.t -> BinOp.t -> Expr.t -> Expr.t
          ; visit_TriOp :
              'c -> Expr.t -> TriOp.t -> Expr.t -> Expr.t -> Expr.t -> Expr.t
+         ; visit_Ite : 'c -> TriOp.t -> TriOp.t
          ; visit_BitwiseAnd : 'c -> BinOp.t -> BinOp.t
          ; visit_BitwiseAndL : 'c -> BinOp.t -> BinOp.t
          ; visit_BitwiseAndF : 'c -> BinOp.t -> BinOp.t
@@ -1411,6 +1413,7 @@ module Visitors : sig
     method visit_TriOp :
       'c -> Expr.t -> TriOp.t -> Expr.t -> Expr.t -> Expr.t -> Expr.t
 
+    method visit_Ite : 'c -> TriOp.t -> TriOp.t
     method visit_BitwiseAnd : 'c -> BinOp.t -> BinOp.t
     method visit_BitwiseAndL : 'c -> BinOp.t -> BinOp.t
     method visit_BitwiseAndF : 'c -> BinOp.t -> BinOp.t
@@ -1708,6 +1711,7 @@ module Visitors : sig
          ; visit_AssumeType : 'c -> Expr.t -> Type.t -> 'f
          ; visit_BinOp : 'c -> Expr.t -> BinOp.t -> Expr.t -> 'f
          ; visit_TriOp : 'c -> TriOp.t -> Expr.t -> Expr.t -> Expr.t -> 'f
+         ; visit_Ite : 'c -> 'f
          ; visit_BitwiseAnd : 'c -> 'f
          ; visit_BitwiseAndL : 'c -> 'f
          ; visit_BitwiseAndF : 'c -> 'f
@@ -1929,6 +1933,7 @@ module Visitors : sig
     method visit_AssumeType : 'c -> Expr.t -> Type.t -> 'f
     method visit_BinOp : 'c -> Expr.t -> BinOp.t -> Expr.t -> 'f
     method visit_TriOp : 'c -> TriOp.t -> Expr.t -> Expr.t -> Expr.t -> 'f
+    method visit_Ite : 'c -> 'f
     method visit_BitwiseAnd : 'c -> 'f
     method visit_BitwiseAndL : 'c -> 'f
     method visit_BitwiseAndF : 'c -> 'f
@@ -2116,7 +2121,7 @@ module Visitors : sig
     method visit_assertion : 'c -> Asrt.t -> 'f
     method visit_bindings : 'c -> string * (string * Expr.t) list -> 'f
     method visit_binop : 'c -> BinOp.t -> 'f
-    method visit_trinop : 'c -> TriOp.t -> 'f
+    method visit_triop : 'c -> TriOp.t -> 'f
     method visit_bispec : 'c -> BiSpec.t -> 'f
     method visit_cmd : 'c -> 'g Cmd.t -> 'f
     method visit_position : 'c -> Location.position -> 'f
@@ -2156,6 +2161,7 @@ module Visitors : sig
          ; visit_AssumeType : 'c -> Expr.t -> Type.t -> unit
          ; visit_BinOp : 'c -> Expr.t -> BinOp.t -> Expr.t -> unit
          ; visit_TriOp : 'c -> TriOp.t -> Expr.t -> Expr.t -> Expr.t -> unit
+         ; visit_Ite : 'c -> unit
          ; visit_BitwiseAnd : 'c -> unit
          ; visit_BitwiseAndL : 'c -> unit
          ; visit_BitwiseAndF : 'c -> unit
@@ -2376,6 +2382,7 @@ module Visitors : sig
     method visit_AssumeType : 'c -> Expr.t -> Type.t -> unit
     method visit_BinOp : 'c -> Expr.t -> BinOp.t -> Expr.t -> unit
     method visit_TriOp : 'c -> TriOp.t -> Expr.t -> Expr.t -> Expr.t -> unit
+    method visit_Ite : 'c -> unit
     method visit_BitwiseAnd : 'c -> unit
     method visit_BitwiseAndL : 'c -> unit
     method visit_BitwiseAndF : 'c -> unit

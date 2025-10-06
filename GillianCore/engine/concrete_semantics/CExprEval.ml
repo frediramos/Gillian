@@ -283,6 +283,21 @@ let rec evaluate_binop
           let s2 = as_str lit2 in
           String (s1 ^ s2))
 
+and evaluate_triop
+    (store : CStore.t)
+    (op : TriOp.t)
+    (c : Expr.t)
+    (e1 : Expr.t)
+    (e2 : Expr.t) : CVal.M.t =
+  let ee = evaluate_expr store in
+  match op with
+  | Ite ->
+      let lit_c = ee c in
+      let b = as_bool lit_c in
+      let lit_e1 = ee e1 in
+      let lit_e2 = ee e2 in
+      if b then lit_e1 else lit_e2
+
 and evaluate_nop (nop : NOp.t) (ll : Literal.t list) : CVal.M.t =
   match nop with
   | LstCat -> LList (List.concat_map (as_list ~msg:"LstCat") ll)
@@ -326,6 +341,7 @@ and evaluate_expr (store : CStore.t) (e : Expr.t) : CVal.M.t =
             raise (Failure err_msg)
         | Some v -> v)
     | BinOp (e1, bop, e2) -> evaluate_binop store bop e1 e2
+    | TriOp (op, c, e1, e2) -> evaluate_triop store op c e1 e2
     | UnOp (unop, e) -> evaluate_unop unop (ee e)
     | NOp (nop, le) -> evaluate_nop nop (List.map ee le)
     | EList ll -> evaluate_elist store ll

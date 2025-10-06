@@ -147,9 +147,7 @@ module M = struct
         |> Seq.map (fun (vs, pc) -> (List.rev vs, pc))
         |> List.of_seq
 
-  let ite (e : vt) (c1 : vt) (c2 : vt) : vt =
-    let open Expr.Infix in
-    (e && c1) || ((not e) && c2)
+  let ite (c : vt) (e1 : vt) (e2 : vt) : vt = Expr.ite c e1 e2
 
   let must_be cond pc gamma =
     not (FOSolver.check_satisfiability [ Expr.Infix.not cond; pc ] gamma)

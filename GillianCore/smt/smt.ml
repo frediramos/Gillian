@@ -596,7 +596,30 @@ let encode_triop
   let>- _ = p1 in
   let>- _ = p2 in
   match op with
-  | Ite -> ite (simple_wrap c) (simple_wrap p2) (simple_wrap p1) >- NoneType
+  | Ite ->
+      let p1', p2', t' =
+        match (p1.kind, p2.kind) with
+        | Native t1, Native t2 when Type.equal t1 t2 -> (
+            match t1 with
+            | BooleanType -> (get_bool p1, get_bool p2, t1)
+            | IntType -> (get_int p1, get_int p2, t1)
+            | NumberType -> (get_num p1, get_num p2, t1)
+            | ListType -> (get_list p1, get_list p2, t1)
+            | SetType -> (get_set p1, get_set p2, t1)
+            | StringType -> (get_string p1, get_string p2, t1)
+            | UndefinedType | NullType | EmptyType | NoneType ->
+                (extend_wrap p1, extend_wrap p2, t1)
+            | _ -> (get_list p1, get_list p2, t1))
+        | Native _, Native _ -> failwith "Mismatch types in Ite!"
+        | Simple_wrapped, Simple_wrapped | Extended_wrapped, Extended_wrapped ->
+            (p1.expr, p2.expr, NoneType)
+        | Simple_wrapped, Native _ | Native _, Simple_wrapped ->
+            (simple_wrap p1, simple_wrap p2, NoneType)
+        | Extended_wrapped, _ | _, Extended_wrapped ->
+            (extend_wrap p1, extend_wrap p2, NoneType)
+      in
+      let c' = get_bool c in
+      ite c' p1' p2' >- t'
 
 let encode_binop (op : BinOp.t) (p1 : Encoding.t) (p2 : Encoding.t) : Encoding.t
     =

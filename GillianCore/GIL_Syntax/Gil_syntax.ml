@@ -2,6 +2,7 @@ module ALoc = ALoc
 module Annot = Annot
 module Asrt = Asrt
 module BinOp = BinOp
+module TriOp = TriOp
 module BiSpec = BiSpec
 module Branch_case = Branch_case
 module Cmd = Cmd
