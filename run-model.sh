@@ -10,7 +10,7 @@ elif [ "$1" == "-lift" ]; then
 elif [ "$1" == "-loglift" ]; then
     REPLACEMENT="LogLiftingMemory"
 else
-    echo "Usage: $0 [-logg | -lift | -loglift] <command>"
+    echo "Usage: $0 [-logg | -lift | -loglift] <file>"
     exit 1
 fi
 
@@ -23,11 +23,17 @@ fi
 # Backup
 cp "$FILE" "$FILE.bak"
 
-# Replace the part before .M in 'module Legacy_symbolic = <Something>.M'
-sed -E -i "s/^(module Legacy_symbolic *= *)[^.[:space:]]+(\.M)/\1${REPLACEMENT}\2/" "$FILE"
+# Detect sed flavor (GNU vs BSD)
+if sed --version >/dev/null 2>&1; then
+    SED_INLINE=(-i)
+else
+    SED_INLINE=(-i "")
+fi
 
-# Run command if provided
+sed -E "${SED_INLINE[@]}" \
+    "s/^(module Legacy_symbolic *= *)[^.[:space:]]+(\.M)/\1${REPLACEMENT}\2/" \
+    "$FILE"
+
 eval "dune exec -- gillian-js wpst ${TARGET}"
 
-# Restore original file
 mv "$FILE.bak" "$FILE"
