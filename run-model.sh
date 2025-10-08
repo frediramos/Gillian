@@ -8,7 +8,7 @@ if [ "$1" == "-logg" ]; then
 elif [ "$1" == "-lift" ]; then
     REPLACEMENT="JSILSMemory"
 elif [ "$1" == "-loglift" ]; then
-    REPLACEMENT="LogLiftingMemory"
+    REPLACEMENT="LogLiftMemory"
 else
     echo "Usage: $0 [-logg | -lift | -loglift] <file>"
     exit 1
