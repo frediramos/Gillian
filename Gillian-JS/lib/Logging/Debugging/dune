@@ -1,0 +1,4 @@
+(library
+ (name debugging_loglifting)
+ (libraries gillian semantics_loglifting js2jsil_lib)
+ (flags :standard -open Gillian))

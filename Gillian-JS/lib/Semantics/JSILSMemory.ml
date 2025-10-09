@@ -9,6 +9,8 @@ module SVal = Gillian.Symbolic.Values
 module PFS = Gillian.Symbolic.Pure_context
 module Type_env = Gillian.Symbolic.Type_env
 module Recovery_tactic = Gillian.General.Recovery_tactic
+module SHeap = Semantics_shared.SHeap
+module SFVL = Semantics_shared.SFVL
 open Gillian.Logic
 
 module M = struct

@@ -1,4 +1,4 @@
-module Legacy_symbolic = JSILSMemory.M
+module Legacy_symbolic = LoggingMemory.M
 module Symbolic = Gillian.Symbolic.Legacy_s_memory.Modernize (Legacy_symbolic)
 module Concrete = Semantics_shared.JSILCMemory.M
 module External = Semantics_shared.External.M

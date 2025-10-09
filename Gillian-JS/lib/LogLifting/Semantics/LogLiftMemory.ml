@@ -1,7 +1,8 @@
 open Gillian
 open Gillian.Gil_syntax
 open Javert_utils
-open MemoryUtils
+open Semantics_shared.MemoryUtils
+module SFVL = Semantics_shared.SFVL
 module GAsrt = Asrt
 module SSubst = Gillian.Symbolic.Subst
 module L = Logging
@@ -183,7 +184,7 @@ module LogLiftingObj : ObjectIntf = struct
 end
 
 module M = struct
-  module Heap = MemoryUtils.MakeHeap (LogLiftingObj)
+  module Heap = MakeHeap (LogLiftingObj)
   include Heap
 
   let execute_action

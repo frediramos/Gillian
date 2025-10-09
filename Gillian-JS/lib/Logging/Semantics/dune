@@ -1,6 +1,6 @@
 (library
- (name semantics)
- (public_name gillian-js.semantics)
+ (name semantics_logging)
+ (public_name gillian-js.semantics_logging)
  (libraries
   semantics_shared
   gillian
