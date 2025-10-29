@@ -1,31 +1,33 @@
 #!/bin/bash
 
+bin="$1"
+
 foldername=${PWD##*/}
 if [ "$foldername" != "environment" ]
 then
 	cd environment
 fi
 
-./testBucketsFolder.sh arrays
+./testBucketsFolder.sh arrays $bin
 sleep 5
-./testBucketsFolder.sh bag
+./testBucketsFolder.sh bag $bin
 sleep 5
-./testBucketsFolder.sh bstree
+./testBucketsFolder.sh bstree $bin
 sleep 5
-./testBucketsFolder.sh dictionary
+./testBucketsFolder.sh dictionary $bin
 sleep 5
-./testBucketsFolder.sh heap
+./testBucketsFolder.sh heap $bin
 sleep 5
-./testBucketsFolder.sh linkedlist
-./testBucketsFolder.sh linkedlist/bug
+./testBucketsFolder.sh linkedlist $bin
+./testBucketsFolder.sh linkedlist/bug $bin
 sleep 5
-./testBucketsFolder.sh multidictionary
-./testBucketsFolder.sh multidictionary/bug
+./testBucketsFolder.sh multidictionary $bin
+./testBucketsFolder.sh multidictionary/bug $bin
 sleep 5
-./testBucketsFolder.sh queue
+./testBucketsFolder.sh queue $bin
 sleep 5
-./testBucketsFolder.sh priorityqueue
+./testBucketsFolder.sh priorityqueue $bin
 sleep 5
-./testBucketsFolder.sh set
+./testBucketsFolder.sh set $bin
 sleep 5
-./testBucketsFolder.sh stack
+./testBucketsFolder.sh stack $bin

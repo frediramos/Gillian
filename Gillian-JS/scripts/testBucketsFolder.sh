@@ -1,10 +1,8 @@
 #!/bin/bash
 
-cmds=$2
+folder="$1"
+bin="$2"
+cmds="$3"
 
-if [ "$cmds" = "count" ]; then
-    ./testCosetteFolder.sh Examples/Cosette/Buckets/$1 count
-else
-    ./testCosetteFolder.sh Examples/Cosette/Buckets/$1
-fi
+./testCosetteFolder.sh "Examples/Cosette/Buckets/${folder}" "$bin" "$cmds"
 sleep 1
