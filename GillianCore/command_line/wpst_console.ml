@@ -57,6 +57,7 @@ module Make
       subst
 
     let run_main prog init_data =
+      let se_start = Sys.time () in
       let all_results =
         let open Syntaxes.List in
         let+ result_before_leak_check =
@@ -86,11 +87,14 @@ module Make
             | _ -> false)
           all_results
       in
+      let se_time = Sys.time () -. se_start in
       let total_time = Sys.time () -. !start_time in
+      L.Statistics.set_time se_time;
       Printf.printf "Total time (Compilation + Symbolic testing): %fs\n"
         total_time;
       if success then
         let () = Fmt.pr "%a@\n@?" (Fmt.styled `Green Fmt.string) "Success!" in
+        let () = if !Config.stats then L.Statistics.dump_stats () in
         exit 0
       else
         let () =

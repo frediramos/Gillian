@@ -146,8 +146,38 @@ module Statistics = struct
 
   open Utils.Containers
 
+  type stats_t = {
+    mutable time : float;
+    mutable solver_time : float;
+    mutable exec_cmds : int;
+    mutable solver_queries : int;
+  }
+
+  let stats : stats_t =
+    { time = 0.0; solver_time = 0.0; exec_cmds = 0; solver_queries = 0 }
+
+  let set_time t = stats.time <- t
+  let update_solver_time f = stats.solver_time <- stats.solver_time +. f
+  let increment_exec_cmds () = stats.exec_cmds <- stats.exec_cmds + 1
+
+  let increment_solver_queries () =
+    stats.solver_queries <- stats.solver_queries + 1
+
+  let stats_to_json () =
+    `Assoc
+      [
+        ("time", `Float stats.time);
+        ("solver_time", `Float stats.solver_time);
+        ("exec_cmds", `Int stats.exec_cmds);
+        ("solver_queries", `Int stats.solver_queries);
+      ]
+
+  let dump_stats () =
+    let oc = open_out "stats.json" in
+    Yojson.Safe.pretty_to_channel oc (stats_to_json ());
+    close_out oc
+
   let active () = !Utils.Config.stats || Mode.enabled ()
-  let exec_cmds = ref 0
 
   (* Performance statistics *)
   let statistics = Hashtbl.create 511
@@ -167,7 +197,7 @@ module Statistics = struct
       SS.of_list (Hashtbl.fold (fun k _ ac -> k :: ac) statistics [])
     in
 
-    print_to_all (Printf.sprintf "Executed commands: %d" !exec_cmds);
+    print_to_all (Printf.sprintf "Executed commands: %d" stats.exec_cmds);
 
     (* Process each item in statistics table *)
     SS.iter

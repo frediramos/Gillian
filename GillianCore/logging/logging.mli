@@ -217,7 +217,14 @@ end
 val dummy_pp : Format.formatter -> 'a -> unit
 
 module Statistics : sig
-  val exec_cmds : int ref
+  type stats_t
+
+  val stats : stats_t
+  val set_time : float -> unit
+  val update_solver_time : float -> unit
+  val increment_exec_cmds : unit -> unit
+  val increment_solver_queries : unit -> unit
+  val dump_stats : unit -> unit
   val update_statistics : string -> float -> unit
   val print_statistics : unit -> unit
 end

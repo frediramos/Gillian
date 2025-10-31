@@ -1746,7 +1746,7 @@ struct
           understand_loop_action loop_ids prev_loop_ids
         else Nothing
       in
-      (* if !Config.stats then Statistics.exec_cmds := !Statistics.exec_cmds + 1; *)
+      if !Config.stats then L.Statistics.increment_exec_cmds ();
       MP.update_coverage prog proc_name i;
 
       log_configuration annot_cmd state cs i b_counter branch_case proc_name

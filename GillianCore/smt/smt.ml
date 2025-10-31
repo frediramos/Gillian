@@ -1007,6 +1007,8 @@ let reset_solver () =
   ()
 
 let exec_sat' (fs : Expr.Set.t) (gamma : typenv) : sexp option =
+  let tstart = Sys.time () in
+  L.Statistics.increment_solver_queries ();
   let () =
     L.verbose (fun m ->
         m "@[<v 2>About to check SAT of:@\n%a@]@\nwith gamma:@\n@[%a@]\n"
@@ -1046,6 +1048,8 @@ let exec_sat' (fs : Expr.Set.t) (gamma : typenv) : sexp option =
     | Sat -> Some (get_model !solver)
     | Unsat -> None
   in
+  let tend = Sys.time () in
+  L.Statistics.update_solver_time (tend -. tstart);
   ret
 
 let exec_sat (fs : Expr.Set.t) (gamma : typenv) : sexp option =
