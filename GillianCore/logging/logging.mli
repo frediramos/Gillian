@@ -221,6 +221,7 @@ module Statistics : sig
 
   val stats : stats_t
   val set_time : float -> unit
+  val set_paths : int -> unit
   val update_solver_time : float -> unit
   val increment_exec_cmds : unit -> unit
   val increment_solver_queries : unit -> unit

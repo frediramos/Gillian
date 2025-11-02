@@ -90,6 +90,7 @@ module Make
       let se_time = Sys.time () -. se_start in
       let total_time = Sys.time () -. !start_time in
       L.Statistics.set_time se_time;
+      L.Statistics.set_paths (List.length all_results);
       Printf.printf "Total time (Compilation + Symbolic testing): %fs\n"
         total_time;
       if success then

@@ -8,3 +8,4 @@ mkdir -p environment
 cp -r Examples environment
 
 cp scripts/*.sh environment
+cp scripts/*.py environment

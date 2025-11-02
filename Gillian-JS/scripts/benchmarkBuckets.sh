@@ -4,22 +4,59 @@
 # Default values
 # -------------------------------
 TS=$(date +"%d-%m-%Y--%H-%M-%S")
-DEFAULT_FOLDER="buckets-benchmarks-$TS"
+DEFAULT_FOLDER="buckets-$TS"
+
+# -------------------------------
+# Binaries and test struct folders
+# -------------------------------
+bins=("gillian-js" "gillian-js-logg" "gillian-js-loglift")
+
+all_structs=(
+    arrays
+    bag
+    bstree
+    dictionary
+    heap
+    linkedlist
+    multidictionary
+    queue
+    priorityqueue
+    set
+    stack
+)
 
 # -------------------------------
 # Parse command-line options
 # -------------------------------
-FOLDER=""
-while getopts "f:" opt; do
-    case $opt in
-        f) FOLDER="$OPTARG" ;;
-        *) echo "Usage: $0 [-f folder]"; exit 1 ;;
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -o|--out)
+            FOLDER="$2"
+            shift 2
+            ;;
+        -s|--struct)
+            STRUCT="$2"
+            shift 2
+            ;;
+        *)
+            echo "Usage: $0 [-o folder] [-s struct]"
+            exit 1
+            ;;
     esac
 done
 
-# Fallback to default folder if not provided
+
+# Fallback to default folder if --out not provided
 FOLDER="${FOLDER:-$DEFAULT_FOLDER}"
 mkdir -p "$FOLDER"
+
+# Fallback to all struct folders if --struct not provided
+if [[ -z "$STRUCT" ]]; then
+    STRUCTS=("${all_structs[@]}")
+else
+    STRUCTS=("$STRUCT")
+fi
+
 
 # -------------------------------
 # Setup environment
@@ -36,36 +73,22 @@ eval "$(opam env)"
 )
 
 # -------------------------------
-# Binaries and test folders
-# -------------------------------
-bins=("gillian-js" "gillian-js-logg" "gillian-js-loglift")
-
-folders=(
-    arrays
-    bag
-    bstree
-    dictionary
-    heap
-    linkedlist
-    multidictionary
-    queue
-    priorityqueue
-    set
-    stack
-)
-
-# -------------------------------
 # Run benchmarks
 # -------------------------------
 for bin in "${bins[@]}"; do
     echo "Running Buckets.js tests with bin = '${bin}'"
-    for folder_name in "${folders[@]}"; do
+    for folder_name in "${STRUCTS[@]}"; do
         ./testBucketsFolder.sh "$folder_name" "$bin" "--stats -l disabled"
         
         # Store results
         mv results-* "$FOLDER"
     done
 done
+
+# -------------------------------
+# Generate tables
+# -------------------------------
+./tabulate-results.py "$FOLDER" -sj -o "$FOLDER"
 
 # -------------------------------
 # Save nohup output if exists
@@ -77,7 +100,7 @@ fi
 # -------------------------------
 # Zip results
 # -------------------------------
-zip -r "${FOLDER}.zip" "$FOLDER"
+zip -rq "${FOLDER}.zip" "$FOLDER"
 
 # -------------------------------
 # Print elapsed time
@@ -91,4 +114,4 @@ seconds=$((duration % 60))
 
 script_name=$(basename "$0")
 echo
-echo "[#] Total time ($script_name): ${hours}:${minutes}:${seconds} (hh:mm:ss) [#]"
+echo "Total time ($script_name): ${hours}:${minutes}:${seconds}"
