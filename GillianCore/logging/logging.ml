@@ -149,27 +149,37 @@ module Statistics = struct
   type stats_t = {
     mutable time : float;
     mutable solver_time : float;
-    mutable exec_cmds : int;
     mutable solver_queries : int;
+    mutable paths : int;
+    mutable exec_cmds : int;
   }
 
   let stats : stats_t =
-    { time = 0.0; solver_time = 0.0; exec_cmds = 0; solver_queries = 0 }
+    {
+      time = 0.0;
+      solver_time = 0.0;
+      solver_queries = 0;
+      paths = 0;
+      exec_cmds = 0;
+    }
 
   let set_time t = stats.time <- t
   let update_solver_time f = stats.solver_time <- stats.solver_time +. f
-  let increment_exec_cmds () = stats.exec_cmds <- stats.exec_cmds + 1
 
   let increment_solver_queries () =
     stats.solver_queries <- stats.solver_queries + 1
+
+  let increment_exec_cmds () = stats.exec_cmds <- stats.exec_cmds + 1
+  let set_paths n = stats.paths <- n
 
   let stats_to_json () =
     `Assoc
       [
         ("time", `Float stats.time);
         ("solver_time", `Float stats.solver_time);
-        ("exec_cmds", `Int stats.exec_cmds);
         ("solver_queries", `Int stats.solver_queries);
+        ("paths", `Int stats.paths);
+        ("exec_cmds", `Int stats.exec_cmds);
       ]
 
   let dump_stats () =

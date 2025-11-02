@@ -1,2 +1,6 @@
 examples/**/*.jsil
 examples/**/*.gil
+
+# Benchmarking
+results-*
+stats.json

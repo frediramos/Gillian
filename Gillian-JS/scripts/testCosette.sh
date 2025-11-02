@@ -8,8 +8,6 @@ filename="$1"
 bin="$2"
 cmds="$3"
 
-echo $filename
-
 stats() {
   local filename="$1"
   local bin="$2"
