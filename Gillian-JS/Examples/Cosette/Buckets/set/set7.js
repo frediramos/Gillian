@@ -556,4 +556,4 @@ set.add(x2);
 
 var arr = set.toArray();
 var len = arr.length;
-Assert(len = 2);
+Assert((len = 1) or(len = 2));

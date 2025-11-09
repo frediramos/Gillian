@@ -769,4 +769,4 @@ dict2.set(s2, x1);
 dict2.set(s2, x2);
 
 var res3 = dict1.equals(dict2);
-Assert((s1 = s2) and (res3)) or (not(s1 == s2) and (not (res3)));
+Assert((s1 = s2) and(res3)  or(not(s1 = s2)  and(not(res3))));
