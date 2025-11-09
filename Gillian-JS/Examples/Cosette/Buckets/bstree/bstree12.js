@@ -1123,6 +1123,4 @@ bst.add(x1);
 bst.add(x2);
 
 var height = bst.height();
-Assert(
-    ((not(x1 = x2)) and (height = 1)) or ((x2 = x1) and (height = 0)),
-);
+Assert(((not(x1 = x2)) and(height = 1)) or((x2 = x1) and(height = 0)));
