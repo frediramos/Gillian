@@ -110,13 +110,29 @@ module MakeHeap (O : ObjectIntf) = struct
   }
   [@@deriving yojson]
 
-  type i_fix_t = unit [@@deriving yojson, show]
+  (** Errors *)
+  type i_fix_t =
+    | FLoc of vt
+    | FCell of vt * vt
+    | FMetadata of vt
+    | FPure of Expr.t
+  [@@deriving yojson, show]
+
   type err_t = vt list * i_fix_t list list * Expr.t [@@deriving yojson, show]
 
   type action_ret =
     ( (t * vt list * Expr.t list * (string * Type.t) list) list,
       err_t list )
     result
+
+  let pp_i_fix ft (i_fix : i_fix_t) : unit =
+    let open Fmt in
+    match i_fix with
+    | FLoc loc -> pf ft "@[<h>MIFLoc(%a)@]" SVal.pp loc
+    | FCell (loc, prop) ->
+        pf ft "@[<h>MIFCell(%a, %a)@]" SVal.pp loc SVal.pp prop
+    | FMetadata loc -> pf ft "@[<h>MIFMetadata(%a)@]" SVal.pp loc
+    | FPure f -> pf ft "@[<h>MIFPure(%a)@]" Expr.pp f
 
   let sure_is_nonempty _ = (* TODO: Implement *) false
 
@@ -266,8 +282,6 @@ module MakeHeap (O : ObjectIntf) = struct
     in
     init_object heap loc_name ~is_empty:ie mv;
     Ok [ (heap, [ loc ], [], []) ]
-
-  let pp_i_fix ft (_ : i_fix_t) : unit = Fmt.pf ft "@[<h>i_fix_t=unit@]"
 
   let get_failing_constraint (err : err_t) : Expr.t =
     let _, _, f = err in
@@ -624,9 +638,11 @@ module MakeHeap (O : ObjectIntf) = struct
 
   let get_metadata (heap : t) (pfs : PFS.t) (gamma : Type_env.t) (loc : vt) :
       action_ret =
+    let loc_name = get_loc_name pfs gamma loc in
+
     let make_gm_error (loc_name : string) : err_t =
       let loc = Expr.loc_from_loc_name loc_name in
-      ([ loc ], [], Expr.false_)
+      ([ loc ], [ [ FMetadata loc ] ], Expr.false_)
     in
 
     let f loc_name =
@@ -643,8 +659,10 @@ module MakeHeap (O : ObjectIntf) = struct
             ~none:(Error [ make_gm_error loc_name ])
             mtdt
     in
-    let loc_name = get_loc_name pfs gamma loc in
-    Option.fold ~some:f ~none:(Error [ ([ loc ], [], Expr.false_) ]) loc_name
+
+    Option.fold ~some:f
+      ~none:(Error [ ([ loc ], [ [ FLoc loc; FMetadata loc ] ], Expr.false_) ])
+      loc_name
 
   let set_metadata
       (heap : t)
