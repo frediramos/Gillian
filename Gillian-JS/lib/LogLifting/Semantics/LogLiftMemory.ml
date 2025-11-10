@@ -31,18 +31,18 @@ module LogLiftingObj : ObjectIntf = struct
   let to_list_aux' (o : ot') (tbl : (vt, vt) Hashtbl.t) :
       vts * vts * (vt, vt) Hashtbl.t =
     match o with
-    | Srec (p, v) when Expr.equal v none -> (set_empty, set_single p, tbl)
+    | Srec (p, v) when Expr.equal v deleted -> (set_empty, set_single p, tbl)
     | Srec (p, v) ->
-        Hashtbl.replace tbl p v;
+        set_if_absent tbl p v;
         (set_single p, set_empty, tbl)
     | Crec cmap ->
         let s1, s2 =
           SMap.fold
             (fun p v (s1, s2) ->
               let p' = Expr.string p in
-              if Expr.equal v none then (s1, Expr.Set.add p' s2)
+              if Expr.equal v deleted then (s1, Expr.Set.add p' s2)
               else (
-                Hashtbl.replace tbl p' v;
+                set_if_absent tbl p' v;
                 (Expr.Set.add p' s1, s2)))
             cmap (set_empty, set_empty)
         in
@@ -161,7 +161,7 @@ module LogLiftingObj : ObjectIntf = struct
     if ret = [] then failwith "ERROR: loglifting_get() should not return empty"
     else ret
 
-  let delete (obj : ot) (prop : vt) : ot = set obj prop none
+  let delete (obj : ot) (prop : vt) : ot = set obj prop deleted
 
   let pp_map fmt v =
     let map_iter f m = SMap.iter (fun k d -> f (k, d)) m in

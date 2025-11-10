@@ -15,6 +15,7 @@ type t = TypeDef__.literal =
   | Type of Type.t  (** GIL types ({!type:Type.t}) *)
   | LList of t list  (** Lists of GIL literals *)
   | Nono
+  | Deleted
 [@@deriving ord]
 
 let rec equal la lb =
@@ -39,6 +40,7 @@ let rec pp fmt x =
   | Null -> Fmt.string fmt "null"
   | Empty -> Fmt.string fmt "empty"
   | Nono -> Fmt.string fmt "none"
+  | Deleted -> Fmt.string fmt "deleted"
   | Constant c -> Fmt.string fmt (Constant.str c)
   | Bool b -> Fmt.pf fmt "%b" b
   | Int i -> Fmt.pf fmt "%ai" Z.pp_print i
@@ -63,6 +65,7 @@ let type_of (x : t) : Type.t =
   | Type _ -> TypeType
   | LList _ -> ListType
   | Nono -> NoneType
+  | Deleted -> NoneType
 
 let evaluate_constant (c : Constant.t) : t =
   match c with

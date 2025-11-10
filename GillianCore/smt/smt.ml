@@ -262,6 +262,7 @@ module Lit_operations = struct
   module Type = (val un "Type" "tValue" t_gil_type : Unary)
   module List = (val un "List" "listValue" (t_seq t_gil_literal) : Unary)
   module None = (val nul "None" : Nullary)
+  module Deleted = (val nul "Deleted" : Nullary)
 
   let _ =
     mk_datatype gil_literal_name []
@@ -390,6 +391,9 @@ module Encoding = struct
 
   let undefined_encoding =
     make ~kind:Simple_wrapped Lit_operations.Undefined.construct
+
+  let deleted_encoding =
+    make ~kind:Simple_wrapped Lit_operations.Deleted.construct
 
   let null_encoding = make ~kind:Simple_wrapped Lit_operations.Null.construct
   let empty_encoding = make ~kind:Simple_wrapped Lit_operations.Empty.construct
@@ -548,6 +552,7 @@ let rec encode_lit (lit : Literal.t) : Encoding.t =
   try
     match lit with
     | Undefined -> undefined_encoding
+    | Deleted -> deleted_encoding
     | Null -> null_encoding
     | Empty -> empty_encoding
     | Nono -> none_encoding
