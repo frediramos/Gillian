@@ -87,6 +87,7 @@ module Literal : sig
     | Type of Type.t  (** GIL types ({!type:Type.t}) *)
     | LList of t list  (** Lists of GIL literals *)
     | Nono  (** Negative information *)
+    | Deleted  (** Deleted information *)
   [@@deriving yojson, eq]
 
   (** Pretty-printer *)
@@ -1289,6 +1290,7 @@ module Visitors : sig
          ; visit_NOp : 'c -> Expr.t -> NOp.t -> Expr.t list -> Expr.t
          ; visit_NoneType : 'c -> Type.t -> Type.t
          ; visit_Nono : 'c -> Literal.t -> Literal.t
+         ; visit_Deleted : 'c -> Literal.t -> Literal.t
          ; visit_Normal : 'c -> Flag.t -> Flag.t
          ; visit_Not : 'c -> UnOp.t -> UnOp.t
          ; visit_Null : 'c -> Literal.t -> Literal.t
@@ -1554,6 +1556,7 @@ module Visitors : sig
     method visit_NOp : 'c -> Expr.t -> NOp.t -> Expr.t list -> Expr.t
     method visit_NoneType : 'c -> Type.t -> Type.t
     method visit_Nono : 'c -> Literal.t -> Literal.t
+    method visit_Deleted : 'c -> Literal.t -> Literal.t
     method visit_Normal : 'c -> Flag.t -> Flag.t
     method visit_Not : 'c -> UnOp.t -> UnOp.t
     method visit_Null : 'c -> Literal.t -> Literal.t
@@ -1817,6 +1820,7 @@ module Visitors : sig
          ; visit_NOp : 'c -> NOp.t -> Expr.t list -> 'f
          ; visit_NoneType : 'c -> 'f
          ; visit_Nono : 'c -> 'f
+         ; visit_Deleted : 'c -> 'f
          ; visit_Normal : 'c -> 'f
          ; visit_Not : 'c -> 'f
          ; visit_Null : 'c -> 'f
@@ -2045,6 +2049,7 @@ module Visitors : sig
     method visit_NOp : 'c -> NOp.t -> Expr.t list -> 'f
     method visit_NoneType : 'c -> 'f
     method visit_Nono : 'c -> 'f
+    method visit_Deleted : 'c -> 'f
     method visit_Normal : 'c -> 'f
     method visit_Not : 'c -> 'f
     method visit_Null : 'c -> 'f
@@ -2276,6 +2281,7 @@ module Visitors : sig
          ; visit_NOp : 'c -> NOp.t -> Expr.t list -> unit
          ; visit_NoneType : 'c -> unit
          ; visit_Nono : 'c -> unit
+         ; visit_Deleted : 'c -> unit
          ; visit_Normal : 'c -> unit
          ; visit_Not : 'c -> unit
          ; visit_Null : 'c -> unit
@@ -2505,6 +2511,7 @@ module Visitors : sig
     method visit_NOp : 'c -> NOp.t -> Expr.t list -> unit
     method visit_NoneType : 'c -> unit
     method visit_Nono : 'c -> unit
+    method visit_Deleted : 'c -> unit
     method visit_Normal : 'c -> unit
     method visit_Not : 'c -> unit
     method visit_Null : 'c -> unit

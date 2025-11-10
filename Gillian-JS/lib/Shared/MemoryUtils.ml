@@ -16,7 +16,7 @@ type vts = Expr.Set.t
 let is_c = Expr.is_concrete
 let none = Expr.lit Nono
 let undef = none
-let deleted = none
+let deleted = Expr.lit Deleted
 let set_empty = Expr.Set.empty
 let set_summ a b = Expr.Set.union a b
 let set_diff a b = Expr.Set.diff a b
@@ -28,6 +28,9 @@ let must_be cond pc gamma =
 
 let is_sat exprs gamma = FOSolver.check_satisfiability exprs gamma
 let check_deleted v = if Expr.equal v deleted then undef else v
+
+let set_if_absent tbl key value =
+  if not (Hashtbl.mem tbl key) then Hashtbl.add tbl key value
 
 let mk_ite (lst : (vt * vt) list) (pc : vt) (gamma : Type_env.t) : vt =
   let open Expr.Infix in

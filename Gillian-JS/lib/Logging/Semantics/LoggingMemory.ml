@@ -25,9 +25,9 @@ module LoggingObj : ObjectIntf = struct
   let to_list_aux' (o : ot') (tbl : (vt, vt) Hashtbl.t) :
       vts * vts * (vt, vt) Hashtbl.t =
     match o with
-    | Rec (p, v) when Expr.equal v none -> (set_empty, set_single p, tbl)
+    | Rec (p, v) when Expr.equal v deleted -> (set_empty, set_single p, tbl)
     | Rec (p, v) ->
-        Hashtbl.replace tbl p v;
+        set_if_absent tbl p v;
         (set_single p, set_empty, tbl)
 
   let rec to_list_aux (o : ot) (tbl : (vt, vt) Hashtbl.t) :
@@ -112,7 +112,7 @@ module LoggingObj : ObjectIntf = struct
     if ret = [] then failwith "ERROR: logging_get() should not return empty"
     else ret
 
-  let delete (obj : ot) (prop : vt) : ot = set obj prop none
+  let delete (obj : ot) (prop : vt) : ot = set obj prop deleted
 
   let pp fmt (o : ot) : unit =
     let pp_rec fmt (t' : ot') =

@@ -51,6 +51,7 @@ and literal =
   | Type of typ
   | LList of literal list
   | Nono
+  | Deleted
 
 and triop = Ite
 
