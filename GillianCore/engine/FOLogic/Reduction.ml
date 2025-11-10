@@ -1527,7 +1527,7 @@ and reduce_lexpr_loop
         match c with
         | Lit (Bool true) -> e1
         | Lit (Bool false) -> e2
-        | _ -> TriOp (Ite, c, e1, e2))
+        | _ -> TriOp (Ite, f c, f e1, f e2))
     (* -------------------------
                 BinOp
              (terrifying)
