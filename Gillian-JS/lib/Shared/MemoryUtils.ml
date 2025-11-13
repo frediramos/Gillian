@@ -81,6 +81,19 @@ let list_to_sfvl lst =
   let map = SFVL.empty in
   List.fold_left (fun acc (k, v) -> SFVL.add k v acc) map lst
 
+let rec possible_locs (expr : vt) : string list =
+  let f = possible_locs in
+  let f' l = List.fold_left (fun acc e -> acc @ f e) [] l in
+  match expr with
+  | Lit (Loc loc) | ALoc loc -> [ loc ]
+  | UnOp (_, e) -> f e
+  | BinOp (e1, _, e2) -> f e1 @ f e2
+  | TriOp (_, _, e1, e2) -> f e1 @ f e2
+  | ESet l | EList l -> f' l
+  | NOp (_, l) -> f' l
+  | LstSub (l, _, _) -> f l
+  | _ -> []
+
 module type ObjectIntf = sig
   type t [@@deriving yojson]
 
@@ -555,55 +568,120 @@ module MakeHeap (O : ObjectIntf) = struct
       (gamma : Type_env.t)
       (loc : vt)
       (prop : vt) : action_ret =
-    let loc_name = get_loc_name pfs gamma loc in
+    let mk_err () = Error [ ([], [], Expr.false_) ] in
 
-    let get_cell_from_loc loc_name =
-      Option.fold
-        ~some:(fun ((obj, dom), mtdt) ->
-          let pfs_lst = PFS.to_list pfs in
-          let pc = Expr.conjunct pfs_lst in
-          let rets = object_get obj prop pc gamma in
-          match rets with
-          | [ (v, _) ] when not (Expr.equal v undef || Expr.equal v none) ->
-              Ok [ (heap, [ loc; prop; v ], [], []) ]
-          | _ -> (
-              match dom with
-              | None -> Error [ ([], [], Expr.false_) ]
-              | Some dom ->
-                  let a_set_inclusion : Expr.t =
-                    UnOp (Not, BinOp (prop, SetMem, dom))
-                  in
-                  if
-                    FOSolver.check_entailment Containers.SS.empty pfs
-                      [ a_set_inclusion ] gamma
-                  then (
-                    let new_domain : Expr.t =
-                      NOp (SetUnion, [ dom; ESet [ prop ] ])
-                    in
-                    let new_domain =
-                      Reduction.reduce_lexpr ?gamma:(Some gamma) ?pfs:(Some pfs)
-                        new_domain
-                    in
-                    let obj' = object_set obj prop (Lit Nono) in
-                    set_all heap loc_name (Some obj') (Some new_domain) mtdt;
-                    Ok [ (heap, [ loc; prop; Lit Nono ], [], []) ])
-                  else
-                    Ok
-                      (List.map
-                         (fun (expr, cond) ->
-                           let heap' = copy heap in
-                           (heap', [ loc; prop; expr ], [ cond ], []))
-                         rets)))
-        ~none:(Error [ ([], [], Expr.false_) ])
-        (get_all heap loc_name)
+    let loc_info_cache :
+        (string, string * ot * vt option * vt option * vt) Hashtbl.t =
+      Hashtbl.create 16
     in
 
-    let result =
-      Option.fold ~some:get_cell_from_loc
-        ~none:(Error [ ([], [], Expr.false_) ])
-        loc_name
+    let get_concrete_info loc_name =
+      match Hashtbl.find_opt loc_info_cache loc_name with
+      | Some info -> Some info
+      | None -> (
+          match get_all heap loc_name with
+          | None -> None
+          | Some ((obj, dom), mtdt) ->
+              let loc_expr =
+                if Names.is_aloc_name loc_name then Expr.ALoc loc_name
+                else Expr.Lit (Loc loc_name)
+              in
+              let info = (loc_name, obj, dom, mtdt, loc_expr) in
+              Hashtbl.add loc_info_cache loc_name info;
+              Some info)
     in
-    result
+
+    let evaluate_cell ?(copy_heap = false) (loc_name, obj, dom, mtdt, loc_expr)
+        =
+      let pc = Expr.conjunct (PFS.to_list pfs) in
+
+      match object_get obj prop pc gamma with
+      | [ (v, _) ] when not (Expr.equal v undef || Expr.equal v none) ->
+          let heap' = if copy_heap then copy heap else heap in
+          Ok [ (heap', [ loc_expr; prop; v ], [], []) ]
+      | rets -> (
+          match dom with
+          | None -> mk_err ()
+          | Some dom_expr ->
+              let not_in_dom =
+                Expr.UnOp (Not, BinOp (prop, SetMem, dom_expr))
+              in
+              if
+                FOSolver.check_entailment Containers.SS.empty pfs [ not_in_dom ]
+                  gamma
+              then (
+                (* Extend domain safely *)
+                let new_dom_expr =
+                  Expr.NOp (SetUnion, [ dom_expr; ESet [ prop ] ])
+                in
+                let new_dom_expr =
+                  if Expr.equal new_dom_expr dom_expr then dom_expr
+                  else Reduction.reduce_lexpr ~gamma ~pfs new_dom_expr
+                in
+                let obj' = object_set obj prop (Lit Nono) in
+                set_all heap loc_name (Some obj') (Some new_dom_expr) mtdt;
+                Ok [ (heap, [ loc_expr; prop; Lit Nono ], [], []) ])
+              else
+                (* Branching case: return fresh heap per branch *)
+                Ok
+                  (List.map
+                     (fun (expr, cond) ->
+                       let branch_heap = copy heap in
+                       (branch_heap, [ loc_expr; prop; expr ], [ cond ], []))
+                     rets))
+    in
+
+    (* ------------------------------------------------------------ *)
+    (* Handle concrete loc_name from get_loc_name                   *)
+    (* ------------------------------------------------------------ *)
+    let handle_concrete loc_name =
+      match get_concrete_info loc_name with
+      | None -> mk_err ()
+      | Some info -> evaluate_cell info
+    in
+
+    (* ------------------------------------------------------------ *)
+    (* Handle symbolic locs                                         *)
+    (* ------------------------------------------------------------ *)
+    let handle_symbolic loc =
+      let loc_names = possible_locs loc in
+      match loc_names with
+      | [] -> mk_err ()
+      | _ ->
+          let results =
+            List.fold_left
+              (fun acc loc_name ->
+                match get_concrete_info loc_name with
+                | None -> acc
+                | Some (loc_name, obj, dom, mtdt, loc_expr) ->
+                    let eq_expr = Expr.BinOp (loc, Equal, loc_expr) in
+                    if
+                      FOSolver.check_satisfiability
+                        (eq_expr :: PFS.to_list pfs)
+                        gamma
+                    then
+                      match
+                        evaluate_cell
+                          (loc_name, obj, dom, mtdt, loc_expr)
+                          ~copy_heap:true
+                      with
+                      | Error _ -> acc
+                      | Ok lst ->
+                          (* Prepend the eq_expr to each branch *)
+                          List.map
+                            (fun (h, vals, conds, evs) ->
+                              (h, vals, eq_expr :: conds, evs))
+                            lst
+                          @ acc
+                    else acc)
+              [] loc_names
+          in
+          if results = [] then mk_err () else Ok results
+    in
+
+    match get_loc_name pfs gamma loc with
+    | Some loc_name -> handle_concrete loc_name
+    | None -> handle_symbolic loc
 
   let remove_cell
       (heap : t)
@@ -638,31 +716,62 @@ module MakeHeap (O : ObjectIntf) = struct
 
   let get_metadata (heap : t) (pfs : PFS.t) (gamma : Type_env.t) (loc : vt) :
       action_ret =
-    let loc_name = get_loc_name pfs gamma loc in
+    let loc_name_opt = get_loc_name pfs gamma loc in
 
-    let make_gm_error (loc_name : string) : err_t =
+    let mk_err loc = Error [ ([ loc ], [ [ FMetadata loc ] ], Expr.false_) ] in
+
+    let mk_err_name loc_name =
       let loc = Expr.loc_from_loc_name loc_name in
-      ([ loc ], [ [ FMetadata loc ] ], Expr.false_)
+      mk_err loc
     in
 
-    let f loc_name =
-      let loc =
-        if Names.is_aloc_name loc_name then Expr.ALoc loc_name
-        else Expr.Lit (Loc loc_name)
-      in
-      match Hashtbl.find_opt heap.fvl loc_name with
-      | None -> Error [ make_gm_error loc_name ]
-      | Some _ ->
-          let mtdt = get_met heap loc_name in
-          Option.fold
-            ~some:(fun mtdt -> Ok [ (heap, [ loc; mtdt ], [], []) ])
-            ~none:(Error [ make_gm_error loc_name ])
-            mtdt
+    let concrete_info loc_name =
+      if not (Hashtbl.mem heap.fvl loc_name) then None
+      else
+        match get_met heap loc_name with
+        | None -> None
+        | Some mtdt ->
+            let loc_expr =
+              if Names.is_aloc_name loc_name then Expr.ALoc loc_name
+              else Expr.Lit (Loc loc_name)
+            in
+            Some (loc_expr, mtdt)
     in
 
-    Option.fold ~some:f
-      ~none:(Error [ ([ loc ], [ [ FLoc loc; FMetadata loc ] ], Expr.false_) ])
-      loc_name
+    (* Case 1: Concrete name from get_loc_name *)
+    let handle_concrete loc_name =
+      match concrete_info loc_name with
+      | None -> mk_err_name loc_name
+      | Some (loc_expr, mtdt) -> Ok [ (heap, [ loc_expr; mtdt ], [], []) ]
+    in
+
+    (* Case 2: Symbolic location *)
+    let handle_symbolic loc =
+      let loc_names = possible_locs loc in
+      match loc_names with
+      | [] -> mk_err loc
+      | _ ->
+          let results =
+            List.fold_left
+              (fun acc loc_name ->
+                match concrete_info loc_name with
+                | None -> acc
+                | Some (loc_expr, mtdt) ->
+                    let new_pfs = Expr.BinOp (loc, Equal, loc_expr) in
+                    if
+                      FOSolver.check_satisfiability
+                        (new_pfs :: PFS.to_list pfs)
+                        gamma
+                    then (heap, [ loc_expr; mtdt ], [ new_pfs ], []) :: acc
+                    else acc)
+              [] loc_names
+          in
+          if results = [] then mk_err loc else Ok results
+    in
+
+    match loc_name_opt with
+    | Some loc_name -> handle_concrete loc_name
+    | None -> handle_symbolic loc
 
   let set_metadata
       (heap : t)
