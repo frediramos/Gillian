@@ -591,13 +591,14 @@ module MakeHeap (O : ObjectIntf) = struct
               Some info)
     in
 
-
-    let evaluate_cell (loc_name, obj, dom, mtdt, loc_expr) =
+    let evaluate_cell ?(copy_heap = false) (loc_name, obj, dom, mtdt, loc_expr)
+        =
       let pc = Expr.conjunct (PFS.to_list pfs) in
 
       match object_get obj prop pc gamma with
       | [ (v, _) ] when not (Expr.equal v undef || Expr.equal v none) ->
-          Ok [ (copy heap, [ loc_expr; prop; v ], [], []) ]
+          let heap' = if copy_heap then copy heap else heap in
+          Ok [ (heap', [ loc_expr; prop; v ], [], []) ]
       | rets -> (
           match dom with
           | None -> mk_err ()
@@ -660,7 +661,9 @@ module MakeHeap (O : ObjectIntf) = struct
                         gamma
                     then
                       match
-                        evaluate_cell (loc_name, obj, dom, mtdt, loc_expr)
+                        evaluate_cell
+                          (loc_name, obj, dom, mtdt, loc_expr)
+                          ~copy_heap:true
                       with
                       | Error _ -> acc
                       | Ok lst ->
@@ -759,9 +762,7 @@ module MakeHeap (O : ObjectIntf) = struct
                       FOSolver.check_satisfiability
                         (new_pfs :: PFS.to_list pfs)
                         gamma
-                    then
-                      let heap' = copy heap in
-                      (heap', [ loc_expr; mtdt ], [ new_pfs ], []) :: acc
+                    then (heap, [ loc_expr; mtdt ], [ new_pfs ], []) :: acc
                     else acc)
               [] loc_names
           in
