@@ -225,6 +225,8 @@ module Statistics : sig
   val update_solver_time : float -> unit
   val increment_exec_cmds : unit -> unit
   val increment_solver_queries : unit -> unit
+  val increment_ite_created : unit -> unit
+  val increment_ite_unfolded : unit -> unit
   val dump_stats : unit -> unit
   val update_statistics : string -> float -> unit
   val print_statistics : unit -> unit

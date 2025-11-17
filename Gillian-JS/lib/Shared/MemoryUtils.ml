@@ -21,7 +21,10 @@ let set_empty = Expr.Set.empty
 let set_summ a b = Expr.Set.union a b
 let set_diff a b = Expr.Set.diff a b
 let set_single a = Expr.Set.singleton a
-let ite (c : vt) (e1 : vt) (e2 : vt) : vt = Expr.ite c e1 e2
+
+let ite (c : vt) (e1 : vt) (e2 : vt) : vt =
+  L.Statistics.increment_ite_created ();
+  Expr.ite c e1 e2
 
 let must_be cond pc gamma =
   not (FOSolver.check_satisfiability [ Expr.Infix.not cond; pc ] gamma)
@@ -88,7 +91,9 @@ let rec possible_locs (expr : vt) : string list =
   | Lit (Loc loc) | ALoc loc -> [ loc ]
   | UnOp (_, e) -> f e
   | BinOp (e1, _, e2) -> f e1 @ f e2
-  | TriOp (_, _, e1, e2) -> f e1 @ f e2
+  | TriOp (_, _, e1, e2) ->
+      L.Statistics.increment_ite_unfolded ();
+      f e1 @ f e2
   | ESet l | EList l -> f' l
   | NOp (_, l) -> f' l
   | LstSub (l, _, _) -> f l

@@ -57,6 +57,8 @@ def create_entry(key: str, obj: dict):
         'solver_queries': 0,
         'paths': 0,
         'exec_cmds': 0,
+        'ite_created': 0,
+        'ite_unfolded': 0,
     }
     obj[key] = entry
     return entry
@@ -115,7 +117,9 @@ def _tabulate(results):
               "Solver Time",
               "Solver Queries",
               "Paths",
-              "Stmts")
+              "Stmts",
+              "ITEs Created",
+              "ITEs Unfolded")
 
     return tabulate(results, headers=header, tablefmt="simple")
 
@@ -132,7 +136,9 @@ def _get_stats(obj: dict, digits=2):
     sq = obj["solver_queries"]
     p = obj["paths"]
     ec = obj["exec_cmds"]
-    return [t, st, sq, p, ec]
+    itec = obj["ite_created"]
+    iteu = obj["ite_unfolded"]
+    return [t, st, sq, p, ec, itec, iteu]
 
 
 def _get_tests(obj: dict):

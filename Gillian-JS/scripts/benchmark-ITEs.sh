@@ -4,25 +4,15 @@
 # Default values
 # -------------------------------
 TS=$(date +"%d-%m-%Y--%H-%M-%S")
-DEFAULT_FOLDER="buckets-$TS"
+DEFAULT_FOLDER="ite-$TS"
 
 # -------------------------------
 # Binaries and test struct folders
 # -------------------------------
-bins=("gillian-js" "gillian-js-logg" "gillian-js-loglift")
+bins=("gillian-js" "gillian-js-loglift")
 
 all_structs=(
-    arrays
-    bag
-    bstree
-    dictionary
-    heap
-    linkedlist
-    multidictionary
-    queue
-    priorityqueue
-    set
-    stack
+    get
 )
 
 # -------------------------------
@@ -61,7 +51,7 @@ fi
 # -------------------------------
 # Setup environment
 # -------------------------------
-echo "Benchmarking object models in Buckets.js"
+echo "Benchmarking ITEs"
 start_time=$SECONDS
 
 echo "Results folder: $FOLDER"
@@ -76,10 +66,15 @@ eval "$(opam env)"
 # Run benchmarks
 # -------------------------------
 for bin in "${bins[@]}"; do
-    echo "Running Buckets.js tests with bin = '${bin}'"
+    echo "Running ITE experiment tests with bin = '${bin}'"
     for folder_name in "${STRUCTS[@]}"; do
-        ./testBucketsFolder.sh "$folder_name" "$bin" "--stats -l disabled"
-        
+
+        for filename in "Examples/ITEs/${folder_name}"/*.js; do
+            [ -f "$filename" ] || break
+            echo "Running file : ${filename}"
+            ./testCosette.sh "$filename" "$bin" "--stats -l disabled"
+        done
+
         # Store results
         mv results-* "$FOLDER"
     done

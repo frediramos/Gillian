@@ -152,6 +152,8 @@ module Statistics = struct
     mutable solver_queries : int;
     mutable paths : int;
     mutable exec_cmds : int;
+    mutable ite_created : int;
+    mutable ite_unfolded : int;
   }
 
   let stats : stats_t =
@@ -161,6 +163,8 @@ module Statistics = struct
       solver_queries = 0;
       paths = 0;
       exec_cmds = 0;
+      ite_created = 0;
+      ite_unfolded = 0;
     }
 
   let set_time t = stats.time <- t
@@ -170,6 +174,8 @@ module Statistics = struct
     stats.solver_queries <- stats.solver_queries + 1
 
   let increment_exec_cmds () = stats.exec_cmds <- stats.exec_cmds + 1
+  let increment_ite_created () = stats.ite_created <- stats.ite_created + 1
+  let increment_ite_unfolded () = stats.ite_unfolded <- stats.ite_unfolded + 1
   let set_paths n = stats.paths <- n
 
   let stats_to_json () =
@@ -180,6 +186,8 @@ module Statistics = struct
         ("solver_queries", `Int stats.solver_queries);
         ("paths", `Int stats.paths);
         ("exec_cmds", `Int stats.exec_cmds);
+        ("ite_created", `Int stats.ite_created);
+        ("ite_unfolded", `Int stats.ite_unfolded);
       ]
 
   let dump_stats () =
